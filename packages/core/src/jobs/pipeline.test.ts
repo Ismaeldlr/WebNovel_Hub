@@ -51,10 +51,12 @@ async function importNovel(url = `${FICTION}/the-clockwork-ferry`): Promise<Inge
 }
 
 beforeEach(async () => {
-  site = new FakeSite()
-    .addFixture(FICTION, 'royal_road/fiction.html')
-    .addFixture(`${CHAPTER}/1002/2-the-brass-pilot`, 'royal_road/chapter.html')
-    .add(COVER, { body: JPEG, contentType: 'image/jpeg' });
+  site = new FakeSite().add(COVER, { body: JPEG, contentType: 'image/jpeg' });
+  if (hasFixtures) {
+    site
+      .addFixture(FICTION, 'royal_road/fiction.html')
+      .addFixture(`${CHAPTER}/1002/2-the-brass-pilot`, 'royal_road/chapter.html');
+  }
   core = await createCore({
     driver: nodeSqliteDriver(':memory:'),
     http: site,

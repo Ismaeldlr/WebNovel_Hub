@@ -57,12 +57,15 @@ function chapterList(): Uint8Array {
   );
 }
 
-const site = () =>
-  new FakeSite()
-    .addFixture(NOVEL, 'wuxiaworld/novel.html')
+const site = () => {
+  const fake = new FakeSite()
     .add(CHAPTERS, { body: chapterList(), contentType: 'application/grpc-web' })
-    .addFixture(`${NOVEL}/nk-chapter-2`, 'wuxiaworld/chapter.html')
     .add(COVER, { body: JPEG, contentType: 'image/jpeg' });
+  if (!hasFixtures) return fake;
+  return fake
+    .addFixture(NOVEL, 'wuxiaworld/novel.html')
+    .addFixture(`${NOVEL}/nk-chapter-2`, 'wuxiaworld/chapter.html');
+};
 
 describe('Wuxiaworld', () => {
   it.each([
