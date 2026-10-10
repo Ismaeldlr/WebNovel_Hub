@@ -1,0 +1,282 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.loading {
+  display: grid;
+  place-items: center;
+  min-height: 40vh;
+}
+
+/* ---- Hero: the cover beside the title, facts and actions ---- */
+
+.hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 12rem 1fr;
+  gap: var(--space-6);
+  align-items: end;
+  padding: var(--space-6);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--paper-raised);
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.sourceLink {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+
+.sourceLink svg {
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
+.title {
+  font-size: clamp(var(--text-2xl), 3vw, 2.25rem);
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.author {
+  margin-top: calc(var(--space-2) * -1);
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin: var(--space-2) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rule);
+}
+
+.facts dt {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.facts dd {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+/* ---- Update check ---- */
+
+.updateHint {
+  color: var(--warn);
+}
+
+/* ---- Fetch all chapters (plan 18) ---- */
+
+.fullFetch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.fullFetchLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.fullFetchLine > span {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.fullFetchHint {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+/* ---- Actions and progress ---- */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.status {
+  width: 11rem;
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--paper-raised);
+}
+
+.progressHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.newLink {
+  font-weight: 700;
+}
+
+/* ---- Sections ---- */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sectionTitle {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  font-size: var(--text-xl);
+}
+
+.sectionCount {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+
+.description {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 44rem;
+  max-height: calc(1.6em * 7);
+  overflow: hidden;
+  font-size: var(--text-lg);
+  line-height: 1.6;
+  mask-image: linear-gradient(to bottom, black 60%, transparent);
+}
+
+.description[data-expanded] {
+  max-height: none;
+  mask-image: none;
+}
+
+.more {
+  margin-top: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+/* Phones: the cover beside the title and facts, the main action across the width. */
+@media (max-width: 599px) {
+  .hero {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: start;
+    padding: var(--space-4);
+  }
+
+  .heroText {
+    gap: var(--space-2);
+  }
+
+  .title {
+    font-size: var(--text-2xl);
+  }
+
+  .author {
+    margin-top: calc(var(--space-1) * -1);
+    font-size: var(--text-sm);
+  }
+
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .facts dt {
+    letter-spacing: 0.04em;
+  }
+
+  .facts dd {
+    font-size: var(--text-base);
+  }
+
+  .actions > :first-child {
+    flex: 1 1 100%;
+  }
+
+  .status {
+    width: auto;
+  }
+}
+
+/* ---- Managing a novel ---- */
+
+.detailsForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: var(--ink);
+}
+
+.formNote {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.formProblem {
+  color: var(--danger);
+}

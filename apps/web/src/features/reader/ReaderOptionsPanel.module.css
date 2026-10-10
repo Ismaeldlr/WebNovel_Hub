@@ -1,0 +1,95 @@
+/*
+ * The reader's options panel: under its button on wider screens, a sheet along the bottom
+ * on phones. Either way the chapter stays in view, so changes can be judged as they apply.
+ */
+
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: min(23rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 6rem);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-2);
+  transform-origin: top right;
+  animation: open var(--duration-fast) var(--ease-out);
+}
+
+.panel:focus-visible {
+  outline: none;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  margin-right: calc(-1 * var(--space-2));
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 560;
+}
+
+.more {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+.more svg {
+  flex: none;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+  margin-top: 0.1rem;
+}
+
+@media (max-width: 599px) {
+  .panel {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    max-height: min(70dvh, 36rem);
+    padding: var(--space-3) var(--space-4) calc(var(--space-5) + var(--safe-bottom));
+    border-width: 1px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    transform-origin: bottom center;
+    animation-name: rise;
+  }
+}
+
+@keyframes open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+}

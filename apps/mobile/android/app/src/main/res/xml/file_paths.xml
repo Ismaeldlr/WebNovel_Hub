@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Files the app hands to other apps through the share sheet: only what it writes to its
+     cache (exported EPUBs, backups). -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="shared" path="." />
+</paths>

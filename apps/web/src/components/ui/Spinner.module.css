@@ -1,0 +1,35 @@
+.wrapper {
+  display: inline-flex;
+}
+
+.spinner {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: currentcolor;
+  animation: spin 900ms linear infinite;
+}
+
+.spinner[data-size='sm'] {
+  width: 1rem;
+  height: 1rem;
+}
+
+.spinner[data-size='lg'] {
+  width: 2rem;
+  height: 2rem;
+  color: var(--accent);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* Still turning (it is the only sign of progress), just gently. */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}

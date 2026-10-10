@@ -1,0 +1,23 @@
+name: Site request
+description: Ask for a new site to be supported.
+labels: [site request]
+body:
+  - type: input
+    id: site
+    attributes:
+      label: Site
+      placeholder: https://example.com
+    validations:
+      required: true
+  - type: input
+    id: novel
+    attributes:
+      label: An example novel
+      description: The address of a novel's page on that site.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: For example whether the site needs an account, or shows some chapters only to paying readers.

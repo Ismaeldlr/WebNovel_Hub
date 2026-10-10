@@ -1,0 +1,110 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* A fieldset's legend doesn't take part in its flex layout: give it its own space. */
+.legend {
+  composes: label from './Fields.module.css';
+  margin-bottom: var(--space-2);
+  padding: 0;
+}
+
+.choices {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.choices[data-layout='tiles'] {
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  max-width: 30rem;
+}
+
+.choices[data-layout='list'] {
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+}
+
+.choice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.choices[data-layout='list'] .choice {
+  align-items: flex-start;
+  gap: 0;
+  padding: var(--space-2) var(--space-6) var(--space-2) var(--space-3);
+}
+
+.choice:hover {
+  border-color: var(--ink-faint);
+}
+
+.choice:has(:checked) {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.choice:has(:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* The radio itself is hidden, but stays focusable and in the accessibility tree. */
+.radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  opacity: 0;
+}
+
+.label {
+  line-height: 1.2;
+}
+
+.choice:has(:checked) .label {
+  font-weight: 700;
+}
+
+.check {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  display: none;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+  padding: 1px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.choice:has(:checked) .check {
+  display: block;
+}
+
+.choices[data-layout='list'] .check {
+  top: 50%;
+  right: var(--space-2);
+  transform: translateY(-50%);
+}

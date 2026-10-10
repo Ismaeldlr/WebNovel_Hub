@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#8A4B1F</color>
+    <!-- The page background (apps/web/src/styles/tokens.css, the paper colour), light and dark. -->
+    <color name="splash_background">#F7F7F8</color>
+</resources>

@@ -1,0 +1,13 @@
+.card {
+  padding: var(--space-5);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-1);
+}
+
+@media (max-width: 599px) {
+  .card {
+    padding: var(--space-4);
+  }
+}

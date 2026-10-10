@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    // Runs in both Node and the browser: no platform globals.
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["src"]
+}

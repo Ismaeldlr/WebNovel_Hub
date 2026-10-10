@@ -1,0 +1,84 @@
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: var(--space-7) var(--space-5);
+  text-align: center;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: var(--paper-raised);
+  color: var(--accent);
+  box-shadow: var(--shadow-1);
+}
+
+.icon svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.state[data-tone='error'] .icon {
+  color: var(--danger);
+}
+
+.title {
+  font-size: var(--text-xl);
+}
+
+.body {
+  margin-top: var(--space-2);
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.action {
+  margin-top: var(--space-5);
+}
+
+/* ---- Skeleton: lines of placeholder text, the last of each paragraph shorter ---- */
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+}
+
+.line {
+  display: block;
+  height: 0.8em;
+  border-radius: var(--radius-sm);
+  background: var(--paper-sunken);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.line:nth-child(4n + 1) {
+  width: 70%;
+  margin-bottom: 0.6em;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line {
+    animation: none;
+  }
+}
+
+.loading {
+  display: grid;
+  place-items: center;
+  min-height: 30vh;
+}

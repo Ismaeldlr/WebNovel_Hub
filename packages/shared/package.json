@@ -1,0 +1,20 @@
+{
+  "name": "@webnovel-hub/shared",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Types and constants shared by Webnovel Hub's core and interface.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "@webnovel-hub/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  }
+}

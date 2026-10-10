@@ -1,0 +1,201 @@
+/*
+ * Design tokens. Components use only these variables, so a theme is a swap of values
+ * (CSS Modules + custom properties). `data-theme` on <html> picks the theme;
+ * index.html sets it before the first paint, and app/theme.tsx keeps it current.
+ *
+ * The look is neutral and solid: flat surfaces in a few
+ * greys, one accent colour for "you are here", the primary action and NEW, and hierarchy
+ * through weight rather than size. Text colours keep at least 4.5:1 contrast on the
+ * surfaces they sit on.
+ *
+ * Breakpoints: CSS can't read custom properties in a media query, so stylesheets write the
+ * two widths literally: `(max-width: 599px)` for phones and `(max-width: 899px)` below the
+ * desktop layout (the sidebar becomes a drawer). src/lib/breakpoints.ts has the same values
+ * for scripts, and a test keeps every stylesheet to these two.
+ */
+
+:root {
+  /* Typography: one sans for the whole interface; the serif is a reading font only. */
+  --font-ui: 'Atkinson Hyperlegible Next Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-serif: 'Newsreader Variable', 'Iowan Old Style', Georgia, serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.75rem;
+  --text-4xl: clamp(2rem, 4vw, 2.75rem);
+
+  /* Icons: inline and chevrons, beside text, in buttons and navigation, and on their own. */
+  --icon-xs: 0.875rem;
+  --icon-sm: 1rem;
+  --icon-md: 1.25rem;
+  --icon-lg: 1.5rem;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+
+  /* Shape */
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --control-height: 2.5rem;
+  --control-height-sm: 2rem;
+
+  /* Layout */
+  --sidebar-width: 16rem;
+  --topbar-height: 3.5rem;
+  --content-width: 72rem;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration: 220ms;
+  --duration-slow: 420ms;
+
+  /* Layers */
+  --z-sidebar: 30;
+  --z-scrim: 29;
+  --z-popover: 40;
+  --z-toast: 50;
+}
+
+/* Phones: the same steps, a size smaller. Reading text has its own sizes (the reader's). */
+@media (max-width: 599px) {
+  :root {
+    --text-sm: 0.8125rem;
+    --text-base: 0.9375rem;
+    --text-lg: 1rem;
+    --text-xl: 1.125rem;
+    --text-2xl: 1.25rem;
+    --text-3xl: 1.375rem;
+    --text-4xl: 1.75rem;
+    --topbar-height: 3.25rem;
+  }
+}
+
+/* Light: the default. */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+  --paper: #f7f7f8;
+  --paper-raised: #fff;
+  --paper-sunken: #eeeef0;
+  --ink: #1b1c1f;
+  --ink-soft: #4d5058;
+  --ink-faint: #686c75;
+  --rule: #e2e3e6;
+  --rule-strong: #c8cad0;
+  --accent: #2c56c9;
+  --accent-hover: #2248b0;
+  --accent-ink: #fff;
+  --accent-soft: #e3eafa;
+  --ok: #1f7a3d;
+  --ok-soft: #e0f1e5;
+  --warn: #865700;
+  --warn-soft: #fbefd6;
+  --danger: #b42318;
+  --danger-soft: #fbe4e2;
+  --focus-ring: #2c56c9;
+  --scrim: rgb(16 18 22 / 45%);
+  --shadow-1: 0 1px 2px rgb(16 18 22 / 6%);
+  --shadow-2: 0 2px 6px rgb(16 18 22 / 8%), 0 10px 30px -8px rgb(16 18 22 / 22%);
+}
+
+/* Dark: neutral dark grey with off-white text. */
+[data-theme='dark'] {
+  color-scheme: dark;
+  --paper: #131416;
+  --paper-raised: #1c1d20;
+  --paper-sunken: #0d0e10;
+  --ink: #e4e5e8;
+  --ink-soft: #a8abb2;
+  --ink-faint: #8a8e97;
+  --rule: #2a2c31;
+  --rule-strong: #3e4148;
+  --accent: #86abff;
+  --accent-hover: #a3bfff;
+  --accent-ink: #0b1220;
+  --accent-soft: #1d2944;
+  --ok: #86cf9a;
+  --ok-soft: #17291d;
+  --warn: #e8bd6a;
+  --warn-soft: #33280f;
+  --danger: #f19a8e;
+  --danger-soft: #3a1c19;
+  --focus-ring: #a3bfff;
+  --scrim: rgb(0 0 0 / 60%);
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow-2: 0 2px 6px rgb(0 0 0 / 40%), 0 12px 32px -8px rgb(0 0 0 / 70%);
+}
+
+/* Black: true black for OLED screens, chosen by hand; Dark's text and accent. */
+[data-theme='black'] {
+  color-scheme: dark;
+  --paper: #000;
+  --paper-raised: #121214;
+  --paper-sunken: #000;
+  --ink: #dcdde0;
+  --ink-soft: #a3a6ad;
+  --ink-faint: #85898f;
+  --rule: #26272b;
+  --rule-strong: #3a3c42;
+  --accent: #86abff;
+  --accent-hover: #a3bfff;
+  --accent-ink: #0b1220;
+  --accent-soft: #18233b;
+  --ok: #86cf9a;
+  --ok-soft: #13231a;
+  --warn: #e8bd6a;
+  --warn-soft: #2d230d;
+  --danger: #f19a8e;
+  --danger-soft: #331916;
+  --focus-ring: #a3bfff;
+  --scrim: rgb(0 0 0 / 70%);
+  --shadow-1: none;
+  --shadow-2: 0 0 0 1px #26272b, 0 12px 32px -8px rgb(0 0 0 / 80%);
+}
+
+/* Sepia: solid warm paper for reading, with a brown accent. */
+[data-theme='sepia'] {
+  color-scheme: light;
+  --paper: #f4ecd8;
+  --paper-raised: #fbf6ea;
+  --paper-sunken: #eadfc5;
+  --ink: #3a2e1d;
+  --ink-soft: #5a4a33;
+  --ink-faint: #6f5f45;
+  --rule: #e0d3b5;
+  --rule-strong: #c9b891;
+  --accent: #8a4712;
+  --accent-hover: #72390d;
+  --accent-ink: #fff8ec;
+  --accent-soft: #eddbbf;
+  --ok: #3b5f2e;
+  --ok-soft: #e0e5c7;
+  --warn: #734a05;
+  --warn-soft: #f1dfb3;
+  --danger: #9a2a16;
+  --danger-soft: #f1d3c2;
+  --focus-ring: #8a4712;
+  --scrim: rgb(58 46 29 / 45%);
+  --shadow-1: 0 1px 2px rgb(58 46 29 / 8%);
+  --shadow-2: 0 2px 6px rgb(58 46 29 / 10%), 0 10px 30px -8px rgb(58 46 29 / 26%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration: 0ms;
+    --duration-slow: 0ms;
+  }
+}

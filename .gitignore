@@ -1,0 +1,43 @@
+# Only source code, configuration and documentation belong in the repository.
+# Anything a tool can regenerate, or that is specific to one machine or person, stays out.
+
+# --- Secrets and local configuration ------------------------------------------------------
+# Copy .env.example to .env; real values never leave your machine.
+.env
+.env.*
+!.env.example
+
+# --- Dependencies (npm install recreates them) -------------------------------------------
+node_modules/
+
+# --- Build output ------------------------------------------------------------------------
+dist/
+*.tsbuildinfo
+
+# --- Caches -------------------------------------------------------------------------------
+.eslintcache
+.cache/
+
+# --- Test and coverage output --------------------------------------------------------------
+coverage/
+test-results/
+playwright-report/
+
+# --- Test fixtures (saved site pages, normalization cases) -------------------------------
+# Kept on the developer's machine only; a clone without them (CI too) skips the tests
+# that read them.
+/fixtures/
+
+# --- Runtime data: the development database and anything else the app writes ------------
+/data/
+
+# --- Logs ---------------------------------------------------------------------------------
+*.log
+npm-debug.log*
+
+# --- Personal tools: editors, operating systems ---------------------------------------
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db

@@ -1,0 +1,24 @@
+/*
+ * Reading text: the chapter in the reader and the preview in Settings. Its typography
+ * comes from readerStyle() through the --reader-* variables; phones take their own text
+ * size. Compose it (`composes: text from ...`) rather than copying these rules.
+ */
+
+.text {
+  color: var(--ink);
+  font-family: var(--reader-font, var(--font-serif));
+  font-size: var(--reader-font-size, 1.125rem);
+  line-height: var(--reader-line-height, 1.6);
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.text p {
+  margin: 0 0 1.1em;
+}
+
+@media (max-width: 599px) {
+  .text {
+    font-size: var(--reader-font-size-compact, 1rem);
+  }
+}

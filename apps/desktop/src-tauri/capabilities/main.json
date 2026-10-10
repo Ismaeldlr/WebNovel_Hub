@@ -1,0 +1,21 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "The app's own window: its pages, the library database and requests to source sites.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "http:default",
+      "allow": [{ "url": "https://*" }, { "url": "http://*" }]
+    },
+    "allow-db-run",
+    "allow-db-exec",
+    "allow-render",
+    "allow-open-site-window",
+    "allow-save-file",
+    "allow-notify",
+    "allow-check-update",
+    "allow-install-update"
+  ]
+}

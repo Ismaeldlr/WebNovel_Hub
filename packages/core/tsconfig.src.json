@@ -1,0 +1,10 @@
+{
+  // The app's code runs in a web view: checked without Node's types, so nothing Node-only
+  // slips in. Tests run in Node and are checked by tsconfig.json.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client"]
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"]
+}

@@ -1,0 +1,75 @@
+import groovy.json.JsonSlurper
+
+apply plugin: 'com.android.application'
+
+// One version for every app: the one in apps/mobile/package.json (kept equal to the Windows
+// app's). 1.2.3 becomes version code 10203.
+def appVersion = new JsonSlurper().parse(file('../../package.json')).version
+def versionParts = appVersion.tokenize('.-').take(3).collect { it.toInteger() }
+
+// Release builds are signed with the upload key the release workflow passes in.
+def keystore = System.getenv('ANDROID_KEYSTORE_FILE')
+def releaseBuild = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
+
+android {
+    namespace = "io.github.ismaeldlr.webnovelhub"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "io.github.ismaeldlr.webnovelhub"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2]
+        versionName appVersion
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        release {
+            if (keystore) {
+                storeFile file(keystore)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (keystore) signingConfig signingConfigs.release
+        }
+    }
+    // Releases come as one APK per processor type, so most people download the small arm64
+    // one, plus a universal APK for anyone unsure.
+    splits {
+        abi {
+            enable releaseBuild
+            reset()
+            include 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+            universalApk true
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+        // The background runner's JavaScript engine.
+        dirs '../../../../node_modules/@capacitor/background-runner/android/src/main/libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'

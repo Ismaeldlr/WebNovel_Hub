@@ -1,0 +1,52 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--rule);
+}
+
+.text {
+  max-width: 44rem;
+}
+
+.title {
+  font-size: var(--text-3xl);
+}
+
+.lead {
+  margin-top: var(--space-2);
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Phones: the top bar shows the title, so the h1 stays for screen readers only and the
+   lead is left out; any actions remain. */
+@media (max-width: 599px) {
+  .header {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .lead {
+    display: none;
+  }
+}

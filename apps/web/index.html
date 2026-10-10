@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#f7f7f8" />
+    <title>Webnovel Hub</title>
+    <script>
+      // Apply the user's theme before the first paint, so no page flashes the wrong colours
+      //: the one in this device's copy of their preferences, or the device's own
+      // light or dark setting for 'system' and when there is no copy. Keep the key and the
+      // values in step with src/features/preferences/store.ts; a test runs this script.
+      (function () {
+        var theme;
+        try {
+          theme = JSON.parse(localStorage.getItem('webnovel-hub.reader-preferences'));
+          theme = theme && theme.preferences && theme.preferences.theme;
+        } catch (error) {}
+        if (theme !== 'light' && theme !== 'dark' && theme !== 'sepia' && theme !== 'black') {
+          theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

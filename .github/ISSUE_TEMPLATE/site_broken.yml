@@ -1,0 +1,30 @@
+name: Site not working
+description: A supported site stopped working (novels won't add, chapters won't load).
+labels: [site broken]
+body:
+  - type: input
+    id: site
+    attributes:
+      label: Site
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Novel or chapter address
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: What the app says
+      description: The error message, or what happens instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version and platform
+      placeholder: 0.1.0 on Android
+    validations:
+      required: true

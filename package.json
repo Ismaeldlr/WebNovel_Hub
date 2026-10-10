@@ -1,0 +1,49 @@
+{
+  "name": "webnovel-hub",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A webnovel reader for Windows and Android.",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ismaeldlr/WebNovel_Hub.git"
+  },
+  "homepage": "https://github.com/Ismaeldlr/WebNovel_Hub",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
+  },
+  "scripts": {
+    "dev": "concurrently --names bridge,web --prefix-colors blue,magenta \"npm:dev:bridge\" \"npm:dev:web\"",
+    "dev:web": "npm run dev --workspace @webnovel-hub/web",
+    "build": "npm run build --workspace @webnovel-hub/shared && npm run build --workspace @webnovel-hub/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint:js",
+    "lint:js": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "test": "npm run test:js",
+    "test:js": "npm run test --workspaces --if-present",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "dev:bridge": "npm run bridge --workspace @webnovel-hub/platform-node",
+    "scrape": "npm run scrape --workspace @webnovel-hub/platform-node --",
+    "dev:desktop": "npm run dev --workspace @webnovel-hub/desktop",
+    "build:desktop": "npm run build --workspace @webnovel-hub/desktop"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "concurrently": "^10.0.5",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^5.0.2"
+  }
+}

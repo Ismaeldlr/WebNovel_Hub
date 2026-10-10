@@ -1,0 +1,116 @@
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  z-index: var(--z-popover);
+  min-width: 13rem;
+  padding: var(--space-1);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-2);
+  transform-origin: top right;
+  animation: open var(--duration-fast) var(--ease-out);
+}
+
+.menu[data-align='end'] {
+  right: 0;
+}
+
+.menu[data-align='start'] {
+  left: 0;
+  transform-origin: top left;
+}
+
+.menu:focus-visible {
+  outline: none;
+}
+
+.popover {
+  width: min(20rem, calc(100vw - 2rem));
+  padding: var(--space-4);
+}
+
+.item {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  min-height: 2.25rem;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover,
+.item:focus-visible {
+  outline: none;
+  background: var(--paper-sunken);
+}
+
+.item:focus-visible {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.itemIcon {
+  display: inline-grid;
+  place-items: center;
+  width: var(--icon-sm);
+  color: var(--ink-soft);
+}
+
+.itemIcon svg,
+.check {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.itemLabel {
+  flex: 1;
+}
+
+.check {
+  color: var(--accent);
+}
+
+.item[aria-checked='true'] .itemLabel {
+  font-weight: 700;
+}
+
+.separator {
+  height: 1px;
+  margin: var(--space-1) var(--space-2);
+  background: var(--rule);
+}
+
+.header {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+/* Phones: a popover spans the screen under the top bar instead of hanging off an edge. */
+@media (max-width: 599px) {
+  .popover[data-align] {
+    position: fixed;
+    top: calc(var(--safe-top) + var(--topbar-height) + var(--space-2));
+    right: calc(var(--space-4) + var(--safe-right));
+    left: calc(var(--space-4) + var(--safe-left));
+    width: auto;
+  }
+}
+
+@keyframes open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}

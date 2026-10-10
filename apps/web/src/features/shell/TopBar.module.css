@@ -1,0 +1,63 @@
+.topbar {
+  position: sticky;
+  top: var(--safe-top);
+  z-index: 20;
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  height: var(--topbar-height);
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+}
+
+.brand {
+  display: none;
+  gap: var(--space-2);
+  align-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.brand:hover {
+  color: var(--ink);
+}
+
+/* Phones: the page's title, in place of the app's name. */
+.pageTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brandMark {
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  margin-left: auto;
+}
+
+@media (max-width: 599px) {
+  .topbar {
+    gap: var(--space-2);
+    padding: 0 var(--space-2);
+  }
+
+  .brand {
+    display: flex;
+    flex: 1;
+  }
+}

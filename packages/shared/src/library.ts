@@ -1,0 +1,90 @@
+import type { LibraryStatus } from './enums.js';
+import type { LibraryState, NovelSummary } from './novels.js';
+import type { SourceKey } from './sources.js';
+
+/** A novel in the signed-in user's library. */
+export interface LibraryItem {
+  novel: NovelSummary;
+  library: LibraryState;
+}
+
+/** Limits of GET /api/library?limit=. */
+export const LIBRARY_PAGE_LIMITS = { default: 24, max: 100 } as const;
+
+/**
+ * Orders of GET /api/library?sort=, each in its natural direction:
+ * - `last_read`: most recently read first; a novel never read counts from when it was added.
+ * - `last_updated`: newest chapter first; novels without chapter dates last.
+ * - `title`: A to Z.
+ * - `added`: most recently added first.
+ * - `progress`: furthest along (furthest chapter out of the total) first.
+ */
+export const LIBRARY_SORTS = ['last_read', 'last_updated', 'title', 'added', 'progress'] as const;
+export type LibrarySort = (typeof LIBRARY_SORTS)[number];
+export const DEFAULT_LIBRARY_SORT: LibrarySort = 'last_read';
+
+/**
+ * Query of GET /api/library. Every filter is optional, and the ones given
+ * must all match.
+ */
+export interface LibraryQuery {
+  /** One status (omitted: all). */
+  status?: LibraryStatus;
+  /** One source (omitted: all). */
+  source?: SourceKey;
+  /** `true` for favourites only (`false`: only the others). */
+  favorite?: boolean;
+  /** `true` for novels with unread NEW chapters only (`false`: without). */
+  unread?: boolean;
+  sort?: LibrarySort;
+  /** Words that must each appear in the title or the author. */
+  q?: string;
+  page?: number;
+  limit?: number;
+}
+
+/** Response of GET /api/library: the novels that match, in `sort` order. */
+export interface LibraryPage {
+  items: LibraryItem[];
+  /** 1-based page number. */
+  page: number;
+  limit: number;
+  sort: LibrarySort;
+  /** Novels matching the filters (the whole library without any), across every page. */
+  total: number;
+}
+
+/**
+ * Response of POST /api/library/:novelId (201 when added, 200 when it already was) and of
+ * the PATCH endpoints.
+ */
+export interface LibraryItemResponse {
+  item: LibraryItem;
+}
+
+/** Body of PATCH /api/library/:novelId/status. */
+export interface UpdateLibraryStatusRequest {
+  status: LibraryStatus;
+}
+
+/** Body of PATCH /api/library/:novelId/favorite. */
+export interface UpdateFavoriteRequest {
+  isFavorite: boolean;
+}
+
+/** Response of GET /api/library/stats: the library page's summary. */
+export interface LibraryStats {
+  total: number;
+  byStatus: Record<LibraryStatus, number>;
+  favorites: number;
+  /** Unread NEW chapters across the library, and how many novels have some. */
+  newChapters: number;
+  novelsWithNewChapters: number;
+  /** The most recent update check of any novel in the library. */
+  lastCheckedAt: string | null;
+}
+
+/** Response of GET /api/library/new-chapters-count. */
+export interface NewChaptersCount {
+  count: number;
+}

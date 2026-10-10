@@ -1,0 +1,45 @@
+{
+  "name": "@webnovel-hub/core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Webnovel Hub's logic: database, services, scraper and EPUB, shared by every app.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "@webnovel-hub/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./wire": {
+      "@webnovel-hub/source": "./src/db/wire.ts",
+      "types": "./dist/db/wire.d.ts",
+      "default": "./dist/db/wire.js"
+    },
+    "./scraper": {
+      "@webnovel-hub/source": "./src/scraper/index.ts",
+      "types": "./dist/scraper/index.d.ts",
+      "default": "./dist/scraper/index.js"
+    },
+    "./background": {
+      "@webnovel-hub/source": "./src/background/index.ts",
+      "types": "./dist/background/index.d.ts",
+      "default": "./dist/background/index.js"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.src.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@webnovel-hub/shared": "^0.0.0",
+    "fast-xml-parser": "^5.11.1",
+    "node-html-parser": "^9.0.4",
+    "parse5": "^8.0.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "@webnovel-hub/platform-node": "^0.0.0"
+  }
+}

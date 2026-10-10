@@ -1,0 +1,17 @@
+# LF everywhere, including Windows working copies: Prettier and the shell scripts
+# expect LF line endings.
+* text=auto eol=lf
+
+# Except Windows batch files (the Android project's Gradle wrapper), which cmd.exe reads
+# reliably only with CRLF.
+*.bat text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.epub binary
+*.pdf binary
+*.woff2 binary

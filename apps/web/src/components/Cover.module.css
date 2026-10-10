@@ -1,0 +1,54 @@
+.cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-sm);
+  background: var(--paper-sunken);
+  object-fit: cover;
+  box-shadow: var(--shadow-1);
+}
+
+.cover[data-size='sm'] {
+  width: 3rem;
+}
+
+/* No cover: a plain tile with the title on it. */
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  justify-content: center;
+  padding: 12% 10%;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  box-shadow: none;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.placeholderTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: clamp(0.8rem, 1vw + 0.4rem, 1.1rem);
+  font-weight: 700;
+  line-height: 1.2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.placeholderAuthor {
+  font-size: var(--text-xs);
+}
+
+.cover[data-size='sm'].placeholder {
+  padding: var(--space-1);
+}
+
+.cover[data-size='sm'] .placeholderTitle {
+  font-size: 0.5rem;
+}
+
+.cover[data-size='sm'] .placeholderAuthor {
+  display: none;
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@webnovel-hub/platform-node",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Runs Webnovel Hub's core on Node: SQLite through node:sqlite, HTTP through fetch.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "@webnovel-hub/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "bridge": "node --conditions=@webnovel-hub/source --experimental-sqlite --no-warnings=ExperimentalWarning --import tsx src/bridge.ts",
+    "scrape": "node --conditions=@webnovel-hub/source --no-warnings=ExperimentalWarning --import tsx src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "tsx": "^4.23.15"
+  },
+  "dependencies": {
+    "@webnovel-hub/core": "^0.0.0"
+  }
+}
