@@ -17,10 +17,10 @@ files, keep them in a local library, and read them offline.
 
 Get the latest version from the [releases page](https://github.com/Ismaeldlr/WebNovel_Hub/releases/latest).
 
-| Platform              | File                                           | Notes                                                                                    |
-| --------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Windows 10 / 11 (x64) | `Webnovel.Hub_<version>_x64-setup.exe`         | Installs for your user only, no admin rights needed. Updates itself.                     |
-| Android 7.0 or newer  | `webnovel-hub-<version>-android-arm64-v8a.apk` | For most phones. If it won't install, use the `universal` APK, which runs on any device. |
+| Platform              | File                                            | Notes                                                                                    |
+| --------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Windows 10 / 11 (x64) | `Webnovel.Hub_<version>_x64-setup.exe`          | Installs for your user only, no admin rights needed. Updates itself.                     |
+| Android 7.0 or newer  | `webnovel-hub-v<version>-android-arm64-v8a.apk` | For most phones. If it won't install, use the `universal` APK, which runs on any device. |
 
 The other APKs are for older 32-bit phones (`armeabi-v7a`) and emulators or x86 tablets
 (`x86_64`). Each release also lists the SHA-256 checksum of every file.
