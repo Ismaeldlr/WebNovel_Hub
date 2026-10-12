@@ -152,29 +152,51 @@
   }
 }
 
-/* Phones: the search, then the sort and filters when asked for. */
+/* The "Sort & filter" button in the phone's top bar: a dot while filters are on. */
+.barButton {
+  position: relative;
+}
+
+.barButton[data-active]::after {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 2px solid var(--paper);
+  border-radius: 999px;
+  background: var(--accent);
+  content: '';
+}
+
+/* Phones: on the page only the count (and Clear filters); the rest in a sheet. */
 @media (max-width: 599px) {
   .bar {
     margin-top: var(--space-3);
-    padding: var(--space-3);
+    padding: 0;
+    border: 0;
+    background: none;
   }
 
-  .fields {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-3) var(--space-2);
+  .row {
+    min-height: var(--control-height-sm);
   }
 
-  .fields > button {
-    justify-self: start;
+  .summary {
+    margin-left: 0;
+    margin-right: auto;
+    font-size: var(--text-xs);
+  }
+
+  .sheet {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding-top: var(--space-2);
   }
 
   .more {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-auto-flow: row;
-  }
-
-  .summary {
-    flex-basis: 100%;
-    margin-left: 0;
   }
 }

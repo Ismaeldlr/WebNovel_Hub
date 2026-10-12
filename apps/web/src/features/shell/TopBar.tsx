@@ -34,6 +34,8 @@ interface TopBarProps {
   pageTitle: string;
   /** What the page asks of the bar on phones. */
   pageBar: PageBar;
+  /** Phones: where pages put their own buttons (BarActions). */
+  actionsSlotRef: Ref<HTMLSpanElement>;
 }
 
 export function TopBar({
@@ -44,6 +46,7 @@ export function TopBar({
   menuButtonRef,
   pageTitle,
   pageBar,
+  actionsSlotRef,
 }: TopBarProps) {
   // Phones have no room for the search box: a button opens it over the top bar.
   const compact = useMediaQuery(COMPACT_QUERY);
@@ -62,7 +65,7 @@ export function TopBar({
       data-clear={(compact && pageBar.clear) || undefined}
     >
       {back ? (
-        <BackButton />
+        <BackButton fallback={typeof back === 'string' ? back : HOME_PATH} />
       ) : (
         drawer && (
           <IconButton
@@ -103,24 +106,25 @@ export function TopBar({
             <Search aria-hidden="true" />
           </IconButton>
         )}
-        <ThemeMenu />
+        {/* Phones: the page's own buttons; the theme is in Settings and the reader there. */}
+        {compact ? <span ref={actionsSlotRef} className={styles.pageActions} /> : <ThemeMenu />}
       </div>
     </header>
   );
 }
 
 /**
- * Back to the page the reader came from, or to the library when the page was opened
+ * Back to the page the reader came from, or to `fallback` when the page was opened
  * directly (nothing before it in this visit).
  */
-function BackButton() {
+function BackButton({ fallback }: { fallback: string }) {
   const navigate = useNavigate();
   const location = useLocation();
   return (
     <IconButton
       label="Back"
       onClick={() => {
-        if (location.key === 'default') void navigate(HOME_PATH);
+        if (location.key === 'default') void navigate(fallback);
         else void navigate(-1);
       }}
     >

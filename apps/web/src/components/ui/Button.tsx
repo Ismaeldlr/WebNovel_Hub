@@ -89,6 +89,25 @@ export function ButtonLink({
   );
 }
 
+/** An icon-only link that looks like an IconButton, e.g. "Add a novel" in the top bar. */
+export function IconLink({
+  label,
+  className,
+  children,
+  ...rest
+}: Omit<LinkProps, 'aria-label'> & { label: string }) {
+  return (
+    <Link
+      aria-label={label}
+      title={label}
+      className={[styles.iconButton, className].filter(Boolean).join(' ')}
+      {...rest}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export interface IconButtonProps extends Omit<ComponentProps<'button'>, 'aria-label'> {
   /** The accessible name, also shown as a tooltip: icon-only buttons need one. */
   label: string;

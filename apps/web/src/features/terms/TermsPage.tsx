@@ -5,8 +5,16 @@ import { useId, useState } from 'react';
 import { Link } from 'react-router';
 import { termsApi } from '../../api/terms';
 import { queryKeys } from '../../app/queryClient';
-import { Button, ButtonLink, EmptyState, ErrorState, Spinner } from '../../components/ui';
+import {
+  Button,
+  ButtonLink,
+  EmptyState,
+  ErrorState,
+  IconButton,
+  Spinner,
+} from '../../components/ui';
 import { plural } from '../../lib/format';
+import { usePageBar } from '../../lib/hooks';
 import { PageHeader } from '../pages/PageHeader';
 import styles from './TermsPage.module.css';
 import { TermDialog } from './TermDialog';
@@ -51,6 +59,8 @@ export function TermsPage() {
   const text = search.trim().toLowerCase();
   const shown = (terms.data ?? []).filter((term) => text === '' || matches(term, text));
 
+  // Phones: back to Profile from the top bar.
+  usePageBar({ back: '/profile' });
   return (
     <>
       <PageHeader
@@ -69,6 +79,11 @@ export function TermsPage() {
               Add term
             </Button>
           </>
+        }
+        barActions={
+          <IconButton label="Add term" onClick={() => setEditing(null)}>
+            <Plus aria-hidden="true" />
+          </IconButton>
         }
       />
       <div className={styles.page}>

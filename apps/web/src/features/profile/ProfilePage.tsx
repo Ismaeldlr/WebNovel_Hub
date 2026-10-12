@@ -6,7 +6,7 @@ import { userApi } from '../../api/user';
 import { queryKeys } from '../../app/queryClient';
 import { Cover } from '../../components/Cover';
 import { StatTiles } from '../../components/StatTiles';
-import { ButtonLink, ErrorState, Spinner } from '../../components/ui';
+import { ButtonLink, ErrorState, IconLink, Spinner } from '../../components/ui';
 import { plural, todayIn } from '../../lib/format';
 import { STATUS_LABELS } from '../../lib/reading';
 import { PageHeader } from '../pages/PageHeader';
@@ -43,6 +43,11 @@ export function ProfilePage() {
           <ButtonLink to="/profile/terms" icon={<Replace aria-hidden="true" />}>
             Terms
           </ButtonLink>
+        }
+        barActions={
+          <IconLink to="/profile/terms" label="Terms">
+            <Replace aria-hidden="true" />
+          </IconLink>
         }
       />
       <div className={styles.page}>

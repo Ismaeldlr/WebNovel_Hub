@@ -41,3 +41,23 @@
   color: var(--ink-soft);
   transform: translate(-50%, -50%);
 }
+
+/* Phones: round swatches in a row. */
+@media (max-width: 599px) {
+  .swatch,
+  .system {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+  }
+
+  .swatch {
+    font-size: var(--text-base);
+  }
+
+  .system svg {
+    width: var(--icon-xs);
+    height: var(--icon-xs);
+    padding: 2px;
+  }
+}

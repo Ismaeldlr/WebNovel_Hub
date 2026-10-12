@@ -119,6 +119,7 @@ export function ReaderOptions({
         options={FONT_OPTIONS}
         onChange={(fontFamily) => onChange({ fontFamily })}
         layout="list"
+        phone="chips"
         render={(option, detailId) => (
           <>
             <ChoiceLabel

@@ -69,3 +69,66 @@
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
+
+/* Phones: one row, the label then − value +; the slider itself stays for the keyboard and
+   screen readers, out of sight. */
+@media (max-width: 599px) {
+  .field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    gap: 0;
+    align-items: center;
+  }
+
+  .head,
+  .slider {
+    display: contents;
+  }
+
+  .label {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .step {
+    width: 2.75rem;
+    height: 2.25rem;
+  }
+
+  .step:first-child {
+    grid-row: 1;
+    grid-column: 2;
+    border-radius: 999px 0 0 999px;
+  }
+
+  .value {
+    display: grid;
+    grid-row: 1;
+    grid-column: 3;
+    place-items: center;
+    min-width: 3.75rem;
+    height: 2.25rem;
+    border-block: 1px solid var(--rule-strong);
+    color: var(--ink);
+  }
+
+  .step:last-child {
+    grid-row: 1;
+    grid-column: 4;
+    border-radius: 0 999px 999px 0;
+  }
+
+  .range {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    opacity: 0;
+  }
+
+  .field:has(.range:focus-visible) .value {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}

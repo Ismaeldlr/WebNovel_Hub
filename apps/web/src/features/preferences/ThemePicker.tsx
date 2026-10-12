@@ -21,6 +21,7 @@ export function ThemePicker({ value, onChange }: ThemePickerProps) {
       options={THEME_OPTIONS}
       onChange={onChange}
       layout="tiles"
+      phone="swatches"
       render={(option) => (
         <>
           <ThemeSwatch theme={option.value} />

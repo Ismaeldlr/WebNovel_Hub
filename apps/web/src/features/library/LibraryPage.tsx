@@ -16,14 +16,18 @@ import {
   ConfirmDialog,
   EmptyState,
   ErrorState,
+  IconLink,
   LoadingState,
   type TabItem,
   tabPanelProps,
   Tabs,
 } from '../../components/ui';
+import { COMPACT_QUERY } from '../../lib/breakpoints';
 import { formatRelativeTime, plural } from '../../lib/format';
+import { useMediaQuery } from '../../lib/hooks';
 import { STATUS_OPTIONS } from '../../lib/reading';
 import { PageHeader } from '../pages/PageHeader';
+import { ContinueCard } from './ContinueCard';
 import { LibraryFilterBar } from './LibraryFilterBar';
 import styles from './LibraryPage.module.css';
 import { useRemoveFromLibrary } from './libraryActions';
@@ -65,6 +69,7 @@ export function LibraryPage() {
   });
   const remove = useRemoveFromLibrary();
   const [removing, setRemoving] = useState<LibraryItem | null>(null);
+  const phone = useMediaQuery(COMPACT_QUERY);
 
   // Back on My Library in the same session: the filters as they were left.
   if (restore !== null) return <Navigate to={{ search: `?${restore}` }} replace />;
@@ -74,6 +79,11 @@ export function LibraryPage() {
   const libraryTotal = stats.data?.total ?? null;
   // Nothing on the shelves at all, whatever the filters.
   const empty = libraryTotal === 0 || (!filtered && list.isSuccess && total === 0);
+  // Phones show how many novels each status holds.
+  const tabs = STATUS_TABS.map((tab) => ({
+    ...tab,
+    count: stats.data && (tab.id === 'all' ? stats.data.total : stats.data.byStatus[tab.id]),
+  }));
 
   return (
     <>
@@ -81,14 +91,23 @@ export function LibraryPage() {
         title="My Library"
         lead="The novels you're reading, following or have finished, with your progress and new chapters."
         actions={empty ? undefined : <AddNovelLink />}
+        barActions={
+          empty ? undefined : (
+            <IconLink to="/add" label="Add a novel">
+              <BookPlus aria-hidden="true" />
+            </IconLink>
+          )
+        }
       />
       {stats.data && <LibrarySummary stats={stats.data} />}
+      {phone && !empty && <ContinueCard />}
       {!empty && (
         <div className={styles.tabs}>
           <Tabs
             label="Status"
             idPrefix="library-status"
-            tabs={STATUS_TABS}
+            chips
+            tabs={tabs}
             selected={filters.status ?? 'all'}
             onSelect={(id) => update({ status: id === 'all' ? null : id })}
           />
@@ -201,7 +220,7 @@ function LibrarySummary({ stats }: { stats: LibraryStats }) {
     { label: 'Last checked', value: lastCheckedAt ? formatRelativeTime(lastCheckedAt) : 'Not yet' },
   ];
   return (
-    <section aria-label="Library summary">
+    <section aria-label="Library summary" className={styles.summarySection}>
       <dl className={styles.summary}>
         {tiles.map((tile) => (
           <div key={tile.label} className={styles.tile}>

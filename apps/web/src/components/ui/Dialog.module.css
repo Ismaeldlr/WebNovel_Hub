@@ -92,6 +92,8 @@
 
 @media (max-width: 599px) {
   .dialog[data-placement='sheet'] {
+    /* Only the bottom is pinned, so the sheet is as tall as what it holds. */
+    top: auto;
     width: 100vw;
     height: auto;
     max-height: 85dvh;

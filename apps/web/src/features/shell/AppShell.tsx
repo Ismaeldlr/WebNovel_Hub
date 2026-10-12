@@ -5,6 +5,7 @@ import { BELOW_DESKTOP_QUERY } from '../../lib/breakpoints';
 import {
   type PageBar,
   PageBarContext,
+  PageBarSlotContext,
   PageTitleContext,
   useDismiss,
   useMediaQuery,
@@ -31,6 +32,7 @@ export function AppShell() {
   const location = useLocation();
   const [pageTitle, setPageTitle] = useState('');
   const [pageBar, setPageBar] = useState<PageBar>({});
+  const [barSlot, setBarSlot] = useState<HTMLElement | null>(null);
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
@@ -97,13 +99,16 @@ export function AppShell() {
           menuButtonRef={menuButtonRef}
           pageTitle={pageTitle}
           pageBar={pageBar}
+          actionsSlotRef={setBarSlot}
         />
         <main id="main" ref={mainRef} tabIndex={-1} className={styles.main}>
           <RouteErrorBoundary key={location.pathname}>
             <Suspense fallback={<PageLoading />}>
               <PageTitleContext value={setPageTitle}>
                 <PageBarContext value={setPageBar}>
-                  <Outlet />
+                  <PageBarSlotContext value={barSlot}>
+                    <Outlet />
+                  </PageBarSlotContext>
                 </PageBarContext>
               </PageTitleContext>
             </Suspense>

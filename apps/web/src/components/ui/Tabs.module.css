@@ -40,3 +40,51 @@
   text-underline-offset: 0.35em;
   box-shadow: var(--shadow-1);
 }
+
+/* Counts show on phones' chips only. */
+.count {
+  display: none;
+}
+
+/* Phones, `chips`: separate pills that scroll sideways to the screen's edges. */
+@media (max-width: 599px) {
+  .tabs[data-chips] {
+    gap: var(--space-2);
+    margin: 0 calc(-1 * var(--space-4));
+    padding: 0 var(--space-4);
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+
+  .tabs[data-chips] .tab {
+    display: inline-flex;
+    flex: none;
+    gap: var(--space-2);
+    align-items: center;
+    height: 2.125rem;
+    padding: 0 var(--space-4);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: var(--paper-raised);
+    font-weight: 600;
+  }
+
+  .tabs[data-chips] .tab[aria-selected='true'] {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+    text-decoration: none;
+    box-shadow: none;
+  }
+
+  .tabs[data-chips] .count {
+    display: inline;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tabs[data-chips] .tab[aria-selected='true'] .count {
+    color: color-mix(in srgb, var(--paper) 70%, transparent);
+  }
+}

@@ -40,6 +40,10 @@ export function NovelCard({ item, onRemove }: NovelCardProps) {
         >
           <Cover title={novel.title} author={novel.author} coverUrl={novel.coverUrl} />
         </Link>
+        {/* Phones: the progress along the cover's bottom edge (the text says it too). */}
+        <span className={styles.coverProgress} aria-hidden="true">
+          <span style={{ width: `${total > 0 ? (reached / total) * 100 : 0}%` }} />
+        </span>
         {library.newChapterCount > 0 && (
           <span className={styles.newBadge}>
             <Badge tone="accent">{plural(library.newChapterCount, 'new chapter')}</Badge>

@@ -77,11 +77,17 @@ export const PageTitleContext = createContext<((title: string) => void) | null>(
 
 /** What a page asks of the phone top bar besides its title. */
 export interface PageBar {
-  /** A back button in place of the menu button, for pages reached from another page. */
-  back?: boolean;
+  /**
+   * A back button in place of the menu button, for pages reached from another page; a
+   * path says where it goes when the page was opened directly (else the library).
+   */
+  back?: boolean | string;
   /** No background and no title, so the top of the page shows through. */
   clear?: boolean;
 }
+
+/** Phones: the place in the top bar where a page puts its own buttons (see BarActions). */
+export const PageBarSlotContext = createContext<HTMLElement | null>(null);
 
 /** Where usePageBar passes its wishes on to the app shell. */
 export const PageBarContext = createContext<((bar: PageBar) => void) | null>(null);

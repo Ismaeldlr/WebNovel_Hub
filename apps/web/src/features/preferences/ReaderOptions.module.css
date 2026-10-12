@@ -83,3 +83,14 @@
   color: var(--danger);
   font-weight: 650;
 }
+
+/* Phones: fonts are chips, named in their own face; the detail goes. */
+@media (max-width: 599px) {
+  .fontDetail {
+    display: none;
+  }
+
+  .options {
+    gap: var(--space-3);
+  }
+}

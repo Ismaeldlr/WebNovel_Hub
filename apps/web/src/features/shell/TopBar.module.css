@@ -65,6 +65,10 @@
   margin-left: auto;
 }
 
+.pageActions {
+  display: contents;
+}
+
 @media (max-width: 599px) {
   .topbar {
     gap: var(--space-2);

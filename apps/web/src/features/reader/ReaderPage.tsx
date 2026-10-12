@@ -202,7 +202,9 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
         `Chapter ${chapter.toLocaleString()} of ${data.novel.totalChapters.toLocaleString()}`
       }
       preferences={preferences}
-      control={data && <ReaderLibraryControl novel={data.novel} library={data.library} />}
+      control={
+        data && <ReaderLibraryControl novel={data.novel} library={data.library} compact={phone} />
+      }
       barsHidden={bars.hidden}
       onShowBars={bars.show}
       progressRef={progressRef}
@@ -214,7 +216,15 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
             navigation={navigation}
             onChapters={openChapters}
             variant="toolbar"
-          />
+            position={
+              data && {
+                chapter,
+                total: data.novel.totalChapters,
+              }
+            }
+          >
+            <ReaderOptionsPanel preferences={preferences} />
+          </ChapterNav>
         )
       }
     >
@@ -235,14 +245,6 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
                 <span>
                   Chapter {chapter.toLocaleString()} of {data.novel.totalChapters.toLocaleString()}
                 </span>
-                {data.status === 'ready' && (
-                  <>
-                    <span aria-hidden="true"> · </span>
-                    <span>
-                      {plural(data.wordCount, 'word')} · {readingMinutes(data.wordCount)} min
-                    </span>
-                  </>
-                )}
               </>
             ) : (
               <span>Chapter {chapter.toLocaleString()}</span>
@@ -251,6 +253,11 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
           <h1 id="chapter-title" ref={headingRef} tabIndex={-1} className={styles.title}>
             {data?.chapter.title ?? `Chapter ${chapter}`}
           </h1>
+          {data?.status === 'ready' && (
+            <p className={styles.length}>
+              {plural(data.wordCount, 'word')} · {readingMinutes(data.wordCount)} min
+            </p>
+          )}
         </header>
 
         {!phone && (
@@ -284,12 +291,19 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
           </section>
         )}
 
-        <ChapterNav
-          label="Chapter navigation, end of chapter"
-          novelId={novelId}
-          navigation={navigation}
-          onChapters={openChapters}
-        />
+        {phone ? (
+          data?.status === 'ready' &&
+          data.navigation.next && (
+            <p className={styles.endMark}>End of chapter {chapter.toLocaleString()}</p>
+          )
+        ) : (
+          <ChapterNav
+            label="Chapter navigation, end of chapter"
+            novelId={novelId}
+            navigation={navigation}
+            onChapters={openChapters}
+          />
+        )}
       </article>
       {data && (
         <ChaptersSheet
@@ -319,7 +333,7 @@ interface FrameProps {
   onShowBars?: () => void;
   /** The progress bar's fill, while a chapter shows. */
   progressRef?: RefObject<HTMLSpanElement | null>;
-  /** The phone's bottom toolbar. */
+  /** The phone's bottom toolbar, which then holds the reading options. */
   toolbar?: ReactNode;
   children: ReactNode;
 }
@@ -364,7 +378,7 @@ function ReaderFrame({
           </Link>
           <div className={styles.barActions}>
             {control}
-            <ReaderOptionsPanel preferences={preferences} />
+            {!toolbar && <ReaderOptionsPanel preferences={preferences} />}
           </div>
         </div>
       </header>
