@@ -3,6 +3,7 @@ import { screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CLIENT_MESSAGES } from '../../api/client';
 import { type FakeApi, addNovel, fakeApi } from '../../test/fakeApi';
+import { chooseMore, openMore } from '../../test/novelMenu';
 import { renderApp } from '../../test/renderApp';
 
 const signedIn = () => fakeApi();
@@ -54,7 +55,7 @@ describe('exporting a novel as an EPUB file', () => {
     const id = addNovel(api, { title: 'The Long Road', chapters: 4, fetched: [1, 2] });
     const { user } = renderApp(`/novels/${id}`);
 
-    await user.click(await screen.findByRole('button', { name: 'Export EPUB of The Long Road' }));
+    await chooseMore(user, 'Export EPUB');
 
     expect(await screen.findByText('Exported The Long Road.epub')).toBeVisible();
     expect(screen.getByText('It holds the 2 of 4 chapters stored so far.')).toBeVisible();
@@ -66,28 +67,31 @@ describe('exporting a novel as an EPUB file', () => {
   it('offers no export before a chapter is stored', async () => {
     const api = signedIn();
     const id = addNovel(api, { title: 'Nothing Yet', chapters: 3 });
-    renderApp(`/novels/${id}`);
-    expect(await screen.findByRole('button', { name: 'Fetch all chapters' })).toBeVisible();
-    expect(screen.queryByRole('button', { name: /Export EPUB/ })).toBeNull();
+    const { user } = renderApp(`/novels/${id}`);
+    const menu = await openMore(user);
+    expect(await within(menu).findByRole('menuitem', { name: 'Fetch all chapters' })).toBeVisible();
+    expect(within(menu).queryByRole('menuitem', { name: /Export EPUB/ })).toBeNull();
   });
 
   it('exports an EPUB import too, whose chapters all came with the file', async () => {
     const api = signedIn();
     const id = addNovel(api, { title: 'From a File', chapters: 2, fetched: [1, 2], epub: true });
     const { user } = renderApp(`/novels/${id}`);
-    await user.click(await screen.findByRole('button', { name: 'Export EPUB of From a File' }));
+    await chooseMore(user, 'Export EPUB');
     expect(await screen.findByText('Exported From a File.epub')).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Fetch all chapters' })).toBeNull();
+    const menu = await openMore(user);
+    expect(within(menu).queryByRole('menuitem', { name: 'Fetch all chapters' })).toBeNull();
   });
 
   it("says so when the file can't be downloaded", async () => {
     const api = signedIn();
     const id = addNovel(api, { title: 'Offline Road', chapters: 2, fetched: [1, 2] });
     const { user } = renderApp(`/novels/${id}`);
-    const button = await screen.findByRole('button', { name: 'Export EPUB of Offline Road' });
+    const menu = await openMore(user);
+    const item = await within(menu).findByRole('menuitem', { name: 'Export EPUB' });
 
     api.unreachable = true;
-    await user.click(button);
+    await user.click(item);
 
     expect(await screen.findByText("Couldn't export the EPUB")).toBeVisible();
     expect(screen.getByText(CLIENT_MESSAGES.network)).toBeVisible();

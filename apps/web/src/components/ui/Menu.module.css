@@ -67,6 +67,11 @@
   color: var(--ink-soft);
 }
 
+/* Items without icons (e.g. a list of statuses) line up with the header. */
+.itemIcon:empty {
+  display: none;
+}
+
 .itemIcon svg,
 .check {
   width: var(--icon-sm);
@@ -75,6 +80,11 @@
 
 .itemLabel {
   flex: 1;
+}
+
+.item[data-tone='danger'],
+.item[data-tone='danger'] .itemIcon {
+  color: var(--danger);
 }
 
 .check {
@@ -97,8 +107,70 @@
   color: var(--ink-soft);
 }
 
-/* Phones: a popover spans the screen under the top bar instead of hanging off an edge. */
+/* Phones only: behind a menu's sheet. */
+.scrim {
+  display: none;
+}
+
+/* Phones: a menu is a sheet rising from the bottom, with bigger rows for thumbs; a popover
+   spans the screen under the top bar instead of hanging off an edge. */
 @media (max-width: 599px) {
+  .scrim {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-popover);
+    display: block;
+    background: var(--scrim);
+    animation: fade var(--duration) var(--ease-out);
+  }
+
+  .menu:not(.popover) {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: calc(var(--z-popover) + 1);
+    min-width: 0;
+    max-height: 85dvh;
+    overflow-y: auto;
+    padding: var(--space-1) calc(var(--space-2) + var(--safe-right))
+      calc(var(--space-4) + var(--safe-bottom)) calc(var(--space-2) + var(--safe-left));
+    border-width: 1px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    animation: rise-up var(--duration) var(--ease-out);
+  }
+
+  /* The sheet's handle. */
+  .menu:not(.popover)::before {
+    display: block;
+    width: 2.25rem;
+    height: 4px;
+    margin: var(--space-2) auto var(--space-3);
+    border-radius: 2px;
+    background: var(--rule-strong);
+    content: '';
+  }
+
+  .item {
+    gap: var(--space-4);
+    min-height: 3rem;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius);
+    font-size: var(--text-base);
+  }
+
+  .itemIcon,
+  .itemIcon svg {
+    width: var(--icon-md);
+    height: var(--icon-md);
+  }
+
+  .header {
+    padding: var(--space-1) var(--space-4) var(--space-2);
+    font-size: var(--text-sm);
+  }
+
   .popover[data-align] {
     position: fixed;
     top: calc(var(--safe-top) + var(--topbar-height) + var(--space-2));
@@ -112,5 +184,17 @@
   from {
     opacity: 0;
     transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rise-up {
+  from {
+    transform: translateY(100%);
   }
 }

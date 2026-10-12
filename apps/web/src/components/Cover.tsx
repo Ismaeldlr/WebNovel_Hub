@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { type CSSProperties, useState } from 'react';
 import { apiDownload } from '../api/client';
 import styles from './Cover.module.css';
 
@@ -10,6 +10,16 @@ interface CoverProps {
   size?: 'sm' | 'md' | 'lg';
   /** Load at once (the novel page's hero) instead of when scrolled into view. */
   eager?: boolean;
+}
+
+/** The cover's image as an address the page can show, read once and kept. */
+function useCoverSource(coverUrl: string | null) {
+  return useQuery({
+    queryKey: ['cover', coverUrl],
+    queryFn: () => coverSource(coverUrl ?? ''),
+    enabled: coverUrl !== null,
+    staleTime: Infinity,
+  });
 }
 
 // A cover's address changes with the cover, so each one is read once and kept.
@@ -30,12 +40,7 @@ async function coverSource(coverUrl: string): Promise<string> {
  */
 export function Cover({ title, author, coverUrl, size = 'md', eager = false }: CoverProps) {
   const [failed, setFailed] = useState(false);
-  const source = useQuery({
-    queryKey: ['cover', coverUrl],
-    queryFn: () => coverSource(coverUrl ?? ''),
-    enabled: coverUrl !== null,
-    staleTime: Infinity,
-  });
+  const source = useCoverSource(coverUrl);
   if (source.data && !failed) {
     return (
       <img
@@ -54,5 +59,27 @@ export function Cover({ title, author, coverUrl, size = 'md', eager = false }: C
       <span className={styles.placeholderTitle}>{title}</span>
       {author && <span className={styles.placeholderAuthor}>{author}</span>}
     </div>
+  );
+}
+
+/**
+ * The cover's image as the background of an empty, decorative element (`--cover` holds
+ * it, for the caller's styles to blur or fade). Nothing without a cover.
+ */
+export function CoverBackdrop({
+  coverUrl,
+  className,
+}: {
+  coverUrl: string | null;
+  className?: string;
+}) {
+  const source = useCoverSource(coverUrl);
+  if (!source.data) return null;
+  return (
+    <div
+      className={className}
+      style={{ '--cover': `url(${JSON.stringify(source.data)})` } as CSSProperties}
+      aria-hidden="true"
+    />
   );
 }

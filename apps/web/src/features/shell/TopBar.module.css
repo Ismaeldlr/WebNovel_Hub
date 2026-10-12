@@ -9,6 +9,20 @@
   padding: 0 var(--space-4);
   border-bottom: 1px solid var(--rule);
   background: var(--paper);
+  transition:
+    background-color var(--duration) var(--ease-out),
+    border-color var(--duration) var(--ease-out);
+}
+
+/* Phones, at the top of a page that draws behind the bar (a novel's cover): no background
+   and no title until the page's own title scrolls under the bar. */
+.topbar[data-clear] {
+  border-bottom-color: transparent;
+  background: transparent;
+}
+
+.topbar[data-clear] .pageTitle {
+  opacity: 0;
 }
 
 .brand {
@@ -36,6 +50,7 @@
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: opacity var(--duration) var(--ease-out);
 }
 
 .brandMark {

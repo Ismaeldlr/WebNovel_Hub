@@ -127,3 +127,24 @@ body::before {
   content: '';
   pointer-events: none;
 }
+
+/* Opening a novel from the library: its cover grows into the novel page's header while
+   the rest of the page cross-fades. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration);
+}
+
+::view-transition-group(novel-cover) {
+  z-index: 1;
+  animation-duration: var(--duration-slow);
+  animation-timing-function: var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

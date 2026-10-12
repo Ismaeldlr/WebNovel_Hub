@@ -2,7 +2,13 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { SkipLink, Spinner } from '../../components/ui';
 import { BELOW_DESKTOP_QUERY } from '../../lib/breakpoints';
-import { PageTitleContext, useDismiss, useMediaQuery } from '../../lib/hooks';
+import {
+  type PageBar,
+  PageBarContext,
+  PageTitleContext,
+  useDismiss,
+  useMediaQuery,
+} from '../../lib/hooks';
 import styles from './AppShell.module.css';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { Sidebar } from './Sidebar';
@@ -24,6 +30,7 @@ export function AppShell() {
   const mainRef = useRef<HTMLElement>(null);
   const location = useLocation();
   const [pageTitle, setPageTitle] = useState('');
+  const [pageBar, setPageBar] = useState<PageBar>({});
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
@@ -89,12 +96,15 @@ export function AppShell() {
           onOpenDrawer={() => setDrawerOpen(true)}
           menuButtonRef={menuButtonRef}
           pageTitle={pageTitle}
+          pageBar={pageBar}
         />
         <main id="main" ref={mainRef} tabIndex={-1} className={styles.main}>
           <RouteErrorBoundary key={location.pathname}>
             <Suspense fallback={<PageLoading />}>
               <PageTitleContext value={setPageTitle}>
-                <Outlet />
+                <PageBarContext value={setPageBar}>
+                  <Outlet />
+                </PageBarContext>
               </PageTitleContext>
             </Suspense>
           </RouteErrorBoundary>

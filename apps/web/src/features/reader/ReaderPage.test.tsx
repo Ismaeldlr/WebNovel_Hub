@@ -207,7 +207,9 @@ describe('reader progress and library', () => {
       'href',
       `/reader/${id}/8`,
     );
-    expect(screen.getByText('Chapter 8 of 12')).toBeVisible();
+    expect(screen.getByText('Read', { selector: 'dt' }).nextElementSibling).toHaveTextContent(
+      '67%',
+    );
   });
 });
 

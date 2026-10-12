@@ -75,6 +75,49 @@ export function usePageTitle(title: string): void {
 /** Where usePageTitle passes the title on to the app shell (its phone top bar shows it). */
 export const PageTitleContext = createContext<((title: string) => void) | null>(null);
 
+/** What a page asks of the phone top bar besides its title. */
+export interface PageBar {
+  /** A back button in place of the menu button, for pages reached from another page. */
+  back?: boolean;
+  /** No background and no title, so the top of the page shows through. */
+  clear?: boolean;
+}
+
+/** Where usePageBar passes its wishes on to the app shell. */
+export const PageBarContext = createContext<((bar: PageBar) => void) | null>(null);
+
+/**
+ * Whether the element has scrolled up under the sticky top bar (once `enabled`, i.e. once
+ * the element is on the page).
+ */
+export function useUnderTopBar(ref: RefObject<HTMLElement | null>, enabled = true): boolean {
+  const [under, setUnder] = useState(false);
+  useEffect(() => {
+    const element = ref.current;
+    if (!enabled || !element || typeof IntersectionObserver === 'undefined') return;
+    const bar = document.querySelector('[data-topbar]');
+    const barBottom = Math.round(bar?.getBoundingClientRect().bottom ?? 0);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry) setUnder(!entry.isIntersecting && entry.boundingClientRect.top < barBottom);
+      },
+      { rootMargin: `-${barBottom}px 0px 0px 0px` },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref, enabled]);
+  return under;
+}
+
+/** Sets the phone top bar's look while the page is shown. */
+export function usePageBar({ back = false, clear = false }: PageBar): void {
+  const setBar = useContext(PageBarContext);
+  useEffect(() => {
+    setBar?.({ back, clear });
+  }, [setBar, back, clear]);
+  useEffect(() => () => setBar?.({}), [setBar]);
+}
+
 /**
  * Calls `onDismiss` when the user presses Escape or clicks outside every element in
  * `inside`, while `active`. For menus and popovers.

@@ -1,6 +1,10 @@
 import type { LibraryItem } from '@webnovel-hub/shared';
+import { useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Trash2, TriangleAlert } from 'lucide-react';
-import { Link } from 'react-router';
+import { type MouseEvent, type RefObject, useRef } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { novelsApi } from '../../api/catalog';
+import { queryKeys } from '../../app/queryClient';
 import { Cover } from '../../components/Cover';
 import { Badge, ButtonLink, IconButton, ProgressBar } from '../../components/ui';
 import { plural } from '../../lib/format';
@@ -19,12 +23,21 @@ export function NovelCard({ item, onRemove }: NovelCardProps) {
   const target = readingTarget(novel.id, library);
   const { reached, total } = progress(library, novel.totalChapters);
   const novelPath = `/novels/${novel.id}`;
+  const coverRef = useRef<HTMLAnchorElement>(null);
+  const openNovel = useOpenNovel(novel.id, coverRef);
 
   return (
     <article className={styles.card} aria-labelledby={`card-${novel.id}`}>
       <div className={styles.coverWrap}>
         {/* The title below is the link for assistive technology; the cover is a mouse shortcut. */}
-        <Link to={novelPath} tabIndex={-1} aria-hidden="true" className={styles.coverLink}>
+        <Link
+          ref={coverRef}
+          to={novelPath}
+          tabIndex={-1}
+          aria-hidden="true"
+          className={styles.coverLink}
+          onClick={openNovel}
+        >
           <Cover title={novel.title} author={novel.author} coverUrl={novel.coverUrl} />
         </Link>
         {library.newChapterCount > 0 && (
@@ -37,7 +50,9 @@ export function NovelCard({ item, onRemove }: NovelCardProps) {
       <div className={styles.body}>
         <div className={styles.titleRow}>
           <h3 id={`card-${novel.id}`} className={styles.title}>
-            <Link to={novelPath}>{novel.title}</Link>
+            <Link to={novelPath} onClick={openNovel}>
+              {novel.title}
+            </Link>
           </h3>
           <FavoriteButton
             novelId={novel.id}
@@ -89,4 +104,60 @@ export function NovelCard({ item, onRemove }: NovelCardProps) {
       </div>
     </article>
   );
+}
+
+/** How long opening a novel waits for its details, and then for its page, before going on. */
+const PREFETCH_WAIT_MS = 300;
+const PAGE_WAIT_MS = 500;
+
+/** Resolves once `selector` matches something on the page, or after `timeoutMs`. */
+function whenShown(selector: string, timeoutMs: number): Promise<void> {
+  const start = performance.now();
+  return new Promise((resolve) => {
+    const check = () => {
+      if (document.querySelector(selector) || performance.now() - start > timeoutMs) resolve();
+      else setTimeout(check, 16);
+    };
+    check();
+  });
+}
+
+/**
+ * Opens the novel with its cover growing into the novel page's (a view transition), where
+ * the browser can and motion isn't reduced. The novel's details are fetched first, for a
+ * moment at most, so the page draws its header straight away; the transition then waits
+ * for that header before showing the new page.
+ */
+function useOpenNovel(novelId: string, coverRef: RefObject<HTMLElement | null>) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  return (event: MouseEvent<HTMLAnchorElement>) => {
+    if (
+      !('startViewTransition' in document) ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+    event.preventDefault();
+    const details = queryClient.prefetchQuery({
+      queryKey: queryKeys.novel(novelId),
+      queryFn: ({ signal }) => novelsApi.get(novelId, signal),
+    });
+    const wait = new Promise((resolve) => setTimeout(resolve, PREFETCH_WAIT_MS));
+    void Promise.race([details, wait]).then(() => {
+      coverRef.current?.style.setProperty('view-transition-name', 'novel-cover');
+      const transition = document.startViewTransition(async () => {
+        void navigate(`/novels/${novelId}`);
+        await whenShown('#novel-title', PAGE_WAIT_MS);
+      });
+      // A transition the browser skips still navigates; nothing to report.
+      transition.ready.catch(() => undefined);
+      transition.finished.catch(() => undefined);
+    });
+  };
 }

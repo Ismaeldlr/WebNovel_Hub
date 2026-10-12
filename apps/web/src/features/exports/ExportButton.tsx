@@ -1,14 +1,8 @@
-import { type NovelSummary, epubFileName } from '@webnovel-hub/shared';
-import { useMutation } from '@tanstack/react-query';
 import { FileDown } from 'lucide-react';
-import { exportApi } from '../../api/catalog';
-import { Button, type ButtonProps, useToast } from '../../components/ui';
-import { saveFile } from '../../lib/download';
+import { Button, type ButtonProps } from '../../components/ui';
+import { type ExportEpubOptions, useExportEpub } from './useExportEpub';
 
-interface ExportButtonProps {
-  novel: Pick<NovelSummary, 'id' | 'title'>;
-  storedChapters: number;
-  totalChapters: number;
+interface ExportButtonProps extends ExportEpubOptions {
   variant?: ButtonProps['variant'];
 }
 
@@ -22,28 +16,7 @@ export function ExportButton({
   totalChapters,
   variant = 'ghost',
 }: ExportButtonProps) {
-  const toast = useToast();
-  const exportEpub = useMutation({
-    mutationFn: async () => {
-      const fileName = epubFileName(novel.title);
-      const saved = await saveFile(await exportApi.epub(novel.id), fileName);
-      return { fileName, saved };
-    },
-    onSuccess: ({ fileName, saved }) => {
-      if (!saved) return;
-      toast({
-        title: `Exported ${fileName}`,
-        description:
-          storedChapters < totalChapters
-            ? `It holds the ${storedChapters.toLocaleString()} of ${totalChapters.toLocaleString()} chapters stored so far.`
-            : undefined,
-        tone: 'success',
-      });
-    },
-    onError: (error) =>
-      toast({ title: "Couldn't export the EPUB", description: error.message, tone: 'error' }),
-  });
-
+  const exportEpub = useExportEpub({ novel, storedChapters, totalChapters });
   if (storedChapters === 0) return null;
   return (
     <Button

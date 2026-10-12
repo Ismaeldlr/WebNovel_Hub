@@ -1,11 +1,26 @@
 import { screen, within } from '@testing-library/react';
+import type { UserEvent } from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { addNovel, fakeApi } from '../../test/fakeApi';
+import { chooseMore, openMore } from '../../test/novelMenu';
 import { renderApp } from '../../test/renderApp';
 
 const signedIn = () => fakeApi();
 // The page polls a running fetch every 3 seconds.
 const SLOW = { timeout: 8_000 };
+
+/**
+ * Whether the More menu offers "Fetch all chapters", once the stored count has loaded
+ * (the menu's other items are there from the start).
+ */
+async function offersFetchAll(user: UserEvent): Promise<boolean> {
+  const menu = await openMore(user);
+  await within(menu).findByRole('menuitem', { name: 'Edit details' });
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  const offered = within(menu).queryByRole('menuitem', { name: 'Fetch all chapters' }) !== null;
+  await user.keyboard('{Escape}');
+  return offered;
+}
 
 describe('fetch all chapters (plan 18)', () => {
   it('fetches every chapter on request, showing progress, then says they are stored', async () => {
@@ -17,11 +32,11 @@ describe('fetch all chapters (plan 18)', () => {
     ];
     const { user } = renderApp(`/novels/${id}`);
 
-    await user.click(await screen.findByRole('button', { name: 'Fetch all chapters' }));
+    await chooseMore(user, 'Fetch all chapters');
 
     expect(await screen.findByText('Waiting to fetch all chapters…')).toBeVisible();
     // No second request while one waits or runs.
-    expect(screen.queryByRole('button', { name: 'Fetch all chapters' })).toBeNull();
+    expect(await offersFetchAll(user)).toBe(false);
     expect(await screen.findByText('Fetched 3 of 6 chapters', {}, SLOW)).toBeVisible();
     const bar = screen.getByRole('progressbar', { name: 'Fetching all chapters' });
     expect(bar).toHaveAttribute('aria-valuenow', '3');
@@ -30,7 +45,7 @@ describe('fetch all chapters (plan 18)', () => {
 
     expect(await screen.findByText('All 6 chapters are stored.', {}, SLOW)).toBeVisible();
     // Nothing left to fetch.
-    expect(screen.queryByRole('button', { name: 'Fetch all chapters' })).toBeNull();
+    expect(await offersFetchAll(user)).toBe(false);
     expect(api.calls.filter((call) => call === `POST /novels/${id}/fetch-all`)).toHaveLength(1);
   }, 20_000);
 
@@ -66,7 +81,7 @@ describe('fetch all chapters (plan 18)', () => {
     const id = addNovel(api, { chapters: 4, library: {} });
     const { user } = renderApp(`/novels/${id}`);
 
-    await user.click(await screen.findByRole('button', { name: 'Fetch all chapters' }));
+    await chooseMore(user, 'Fetch all chapters');
     const status = await screen.findByText('Waiting to fetch all chapters…');
     await user.click(
       within(status.closest('[role="status"]') as HTMLElement).getByRole('button', {
@@ -76,7 +91,8 @@ describe('fetch all chapters (plan 18)', () => {
 
     expect(await screen.findByText('Stopped fetching all chapters')).toBeVisible();
     expect(api.fullFetches.has(id)).toBe(false);
-    expect(await screen.findByRole('button', { name: 'Fetch all chapters' })).toBeVisible();
+    const menu = await openMore(user);
+    expect(await within(menu).findByRole('menuitem', { name: 'Fetch all chapters' })).toBeVisible();
   });
 
   it('explains why a fetch stopped', async () => {
@@ -94,13 +110,13 @@ describe('fetch all chapters (plan 18)', () => {
     ];
     const { user } = renderApp(`/novels/${id}`);
 
-    await user.click(await screen.findByRole('button', { name: 'Fetch all chapters' }));
+    await chooseMore(user, 'Fetch all chapters');
 
     const heading = await screen.findByText('Fetching all chapters stopped.', {}, SLOW);
     const alert = heading.closest('[role="alert"]');
     expect(alert).toHaveTextContent('Royal Road kept refusing requests');
     // It can be asked for again.
-    expect(screen.getByRole('button', { name: 'Fetch all chapters' })).toBeVisible();
+    expect(await offersFetchAll(user)).toBe(true);
   }, 15_000);
 
   it('is not offered for EPUB imports or novels with every chapter stored', async () => {
@@ -109,13 +125,13 @@ describe('fetch all chapters (plan 18)', () => {
     const stored = addNovel(api, { title: 'All Here', chapters: 2, fetched: [1, 2] });
     const first = renderApp(`/novels/${epub}`);
     await screen.findByRole('heading', { level: 1, name: 'From a File' });
-    expect(screen.queryByRole('button', { name: 'Fetch all chapters' })).toBeNull();
+    expect(await offersFetchAll(first.user)).toBe(false);
     first.unmount();
 
-    renderApp(`/novels/${stored}`);
+    const second = renderApp(`/novels/${stored}`);
     await screen.findByRole('heading', { level: 1, name: 'All Here' });
     await screen.findByRole('button', { name: 'Check for updates' });
-    expect(screen.queryByRole('button', { name: 'Fetch all chapters' })).toBeNull();
+    expect(await offersFetchAll(second.user)).toBe(false);
     // An EPUB import is asked once how many chapters are stored, for Export EPUB.
     expect(api.calls.filter((call) => call === `GET /novels/${epub}/fetch-all`)).toHaveLength(1);
   });

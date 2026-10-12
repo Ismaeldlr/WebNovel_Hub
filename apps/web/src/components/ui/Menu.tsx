@@ -11,7 +11,9 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useDismiss } from '../../lib/hooks';
+import { createPortal } from 'react-dom';
+import { COMPACT_QUERY } from '../../lib/breakpoints';
+import { useDismiss, useMediaQuery } from '../../lib/hooks';
 import styles from './Menu.module.css';
 import { PopoverContext } from './popover';
 
@@ -40,7 +42,8 @@ interface MenuProps {
 /**
  * An action menu (WAI-ARIA menu button pattern): Enter, Space or ↓ opens it on the first
  * item (↑ on the last, or the checked one); ↑ ↓ Home End move; Escape closes and returns
- * focus to the button; Tab or a click outside closes it.
+ * focus to the button; Tab or a click outside closes it. On phones it rises from the
+ * bottom as a sheet over a scrim, and a tap on the scrim closes it.
  */
 export function Menu({ trigger, children, align = 'end' }: MenuProps) {
   const [open, setOpen] = useState(false);
@@ -49,6 +52,8 @@ export function Menu({ trigger, children, align = 'end' }: MenuProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const id = useId();
+  // Phones: the sheet goes to the end of the page, clear of the bars' layers.
+  const sheet = useMediaQuery(COMPACT_QUERY);
 
   const items = () =>
     Array.from(menuRef.current?.querySelectorAll<HTMLElement>(ITEM_SELECTOR) ?? []);
@@ -58,7 +63,7 @@ export function Menu({ trigger, children, align = 'end' }: MenuProps) {
     if (returnFocus) triggerRef.current?.focus();
   }, []);
 
-  useDismiss(open, [rootRef], (reason) => close(reason === 'escape'));
+  useDismiss(open, [rootRef, menuRef], (reason) => close(reason === 'escape'));
 
   useEffect(() => {
     if (!open) return;
@@ -95,6 +100,23 @@ export function Menu({ trigger, children, align = 'end' }: MenuProps) {
     else if (event.key === 'Tab') close(false);
   };
 
+  const menu = (
+    <>
+      {sheet && <div className={styles.scrim} aria-hidden="true" onClick={() => close()} />}
+      <div
+        ref={menuRef}
+        id={`${id}-menu`}
+        role="menu"
+        aria-labelledby={`${id}-button`}
+        className={styles.menu}
+        data-align={align}
+        onKeyDown={onMenuKeyDown}
+      >
+        <MenuContext value={{ close }}>{children}</MenuContext>
+      </div>
+    </>
+  );
+
   return (
     <div ref={rootRef} className={styles.root}>
       {trigger({
@@ -106,19 +128,7 @@ export function Menu({ trigger, children, align = 'end' }: MenuProps) {
         onClick: () => (open ? close() : openAt('checked')),
         onKeyDown: onTriggerKeyDown,
       })}
-      {open && (
-        <div
-          ref={menuRef}
-          id={`${id}-menu`}
-          role="menu"
-          aria-labelledby={`${id}-button`}
-          className={styles.menu}
-          data-align={align}
-          onKeyDown={onMenuKeyDown}
-        >
-          <MenuContext value={{ close }}>{children}</MenuContext>
-        </div>
-      )}
+      {open && (sheet ? createPortal(menu, document.body) : menu)}
     </div>
   );
 }
@@ -129,10 +139,12 @@ interface MenuItemProps {
   icon?: ReactNode;
   /** Makes this one of a set of choices (menuitemradio), checked or not. */
   checked?: boolean;
+  /** `danger`: an action that destroys something, e.g. Delete. */
+  tone?: 'danger';
   children: ReactNode;
 }
 
-export function MenuItem({ onSelect, icon, checked, children }: MenuItemProps) {
+export function MenuItem({ onSelect, icon, checked, tone, children }: MenuItemProps) {
   const menu = useContext(MenuContext);
   const radio = checked !== undefined;
   return (
@@ -142,6 +154,7 @@ export function MenuItem({ onSelect, icon, checked, children }: MenuItemProps) {
       aria-checked={radio ? checked : undefined}
       tabIndex={-1}
       className={styles.item}
+      data-tone={tone}
       onClick={() => {
         menu?.close();
         onSelect();
