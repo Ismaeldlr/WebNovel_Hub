@@ -40,6 +40,9 @@ const HistoryPage = lazy(() =>
 const ProfilePage = lazy(() =>
   import('./features/profile/ProfilePage').then((module) => ({ default: module.ProfilePage })),
 );
+const TermsPage = lazy(() =>
+  import('./features/terms/TermsPage').then((module) => ({ default: module.TermsPage })),
+);
 
 const ExportsPage = lazy(() =>
   import('./features/exports/ExportsPage').then((module) => ({ default: module.ExportsPage })),
@@ -60,6 +63,7 @@ const PAGES: { path: string; Page: ComponentType }[] = [
   { path: 'updates', Page: UpdateJobsPage },
   { path: 'exports', Page: ExportsPage },
   { path: 'profile', Page: ProfilePage },
+  { path: 'profile/terms', Page: TermsPage },
   { path: 'settings', Page: SettingsPage },
 ];
 

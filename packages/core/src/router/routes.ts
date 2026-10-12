@@ -18,6 +18,7 @@ import {
   RECENT_IMPORTS_LIMITS,
   SEARCH_LIMITS,
   SOURCE_KEY_PATTERN,
+  TERM_TEXT_MAX,
   THEME_PREFERENCES,
   UPDATE_RUN_PAGE_LIMITS,
 } from '@webnovel-hub/shared';
@@ -38,11 +39,13 @@ import type { LibraryService } from '../services/library.js';
 import { MANAGEMENT_MESSAGES, type NovelManagementService } from '../services/novel-management.js';
 import type { PreferencesService } from '../services/preferences.js';
 import { READER_MESSAGES, type ReaderService } from '../services/reader.js';
+import { TERM_MESSAGES, type TermService } from '../services/terms.js';
 import type { UpdateService } from '../services/updates.js';
 import { type Route, type RouteRequest, type UploadedFile, ok } from './router.js';
 import {
   booleanFlag,
   idParam,
+  nullableId,
   optionalId,
   parseBody,
   parseQuery,
@@ -64,6 +67,7 @@ export interface Services {
   updates: UpdateService;
   management: NovelManagementService;
   accounts: AccountService;
+  terms: TermService;
 }
 
 const page = positiveInt('page must be a whole number of 1 or more.', { max: 1_000_000 });
@@ -175,6 +179,48 @@ export const detailsBody = z
   .refine((changes) => Object.values(changes).some((value) => value !== undefined), {
     error: 'Change at least one of the title, author, description or tags.',
   });
+
+// --- Terms ---------------------------------------------------------------------------------
+
+const termFields = {
+  novelId: nullableId('novelId must be a novel id, or null for every novel.'),
+  original: z
+    .string({ error: 'The original text must be text.' })
+    .trim()
+    .min(1, 'Enter the text to replace.')
+    .max(TERM_TEXT_MAX, `A term's text is at most ${TERM_TEXT_MAX} characters.`),
+  replacement: z
+    .string({ error: 'The replacement must be text.' })
+    .trim()
+    .max(TERM_TEXT_MAX, `A replacement is at most ${TERM_TEXT_MAX} characters.`),
+};
+
+const termCreateBody = z.strictObject(termFields, {
+  error: (issue) =>
+    issue.code === 'unrecognized_keys'
+      ? `A term has only a novelId, an original and a replacement (not: ${issue.keys.join(', ')}).`
+      : 'Send the term as a JSON object.',
+});
+
+const termUpdateBody = z
+  .strictObject(
+    {
+      novelId: termFields.novelId.optional(),
+      original: termFields.original.optional(),
+      replacement: termFields.replacement.optional(),
+    },
+    {
+      error: (issue) =>
+        issue.code === 'unrecognized_keys'
+          ? `Only the novel, the original and the replacement can be changed (not: ${issue.keys.join(', ')}).`
+          : 'Send the changes as a JSON object.',
+    },
+  )
+  .refine((body) => Object.values(body).some((value) => value !== undefined), {
+    error: 'Change at least one of the novel, the original or the replacement.',
+  });
+
+const termId = (request: RouteRequest) => idParam(request.params.id, TERM_MESSAGES.notFound);
 
 export const COVER_MESSAGES = {
   missing: 'Choose an image for the cover.',
@@ -467,6 +513,11 @@ export function createRoutes(s: Services): Route[] {
     },
     {
       method: 'GET',
+      path: '/novels/:id/terms',
+      handle: async (request) => ok({ terms: await s.terms.listForNovel(novelId(request)) }),
+    },
+    {
+      method: 'GET',
       path: '/novels/:id/chapters',
       async handle(request) {
         const q = parseQuery(chapterQuery, request.query);
@@ -518,6 +569,33 @@ export function createRoutes(s: Services): Route[] {
             bytes: await collect(content),
           },
         };
+      },
+    },
+
+    // Terms
+    { method: 'GET', path: '/terms', handle: async () => ok({ terms: await s.terms.list() }) },
+    {
+      method: 'POST',
+      path: '/terms',
+      async handle(request) {
+        const fields = parseBody(termCreateBody, request.body);
+        return ok({ term: await s.terms.create(fields) }, 201);
+      },
+    },
+    {
+      method: 'PATCH',
+      path: '/terms/:id',
+      async handle(request) {
+        const changes = parseBody(termUpdateBody, request.body);
+        return ok({ term: await s.terms.update(termId(request), changes) });
+      },
+    },
+    {
+      method: 'DELETE',
+      path: '/terms/:id',
+      async handle(request) {
+        await s.terms.remove(termId(request));
+        return ok(null);
       },
     },
 

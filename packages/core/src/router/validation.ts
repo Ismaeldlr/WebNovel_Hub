@@ -30,6 +30,15 @@ export function optionalId(message: string) {
     .optional();
 }
 
+/** An id in a body that may be null, e.g. a term's `novelId`: a UUID, lower-cased. */
+export function nullableId(message: string) {
+  return z
+    .string({ error: message })
+    .regex(UUID, message)
+    .transform((id) => id.toLowerCase())
+    .nullable();
+}
+
 /** An optional positive integer query parameter, e.g. `?page=2`. */
 export function positiveInt(message: string, { max }: { max: number }) {
   return z.coerce

@@ -19,6 +19,7 @@ import { createNovelManagementService } from './novel-management.js';
 import { createPrefetcher } from './prefetch.js';
 import { createPreferencesService } from './preferences.js';
 import { createReaderService } from './reader.js';
+import { createTermService } from './terms.js';
 import { createUpdateService } from './updates.js';
 
 let db: Database;
@@ -145,6 +146,52 @@ describe('library', () => {
       { tag: 'Action', novels: 2 },
       { tag: 'Magic', novels: 1 },
     ]);
+  });
+});
+
+describe('terms', () => {
+  it('adds, lists, changes and deletes terms for a novel or every novel', async () => {
+    const terms = createTermService(db);
+    const a = await insertNovel(db, { title: 'Alpha' });
+    const b = await insertNovel(db, { title: 'Beta' });
+
+    const lin = await terms.create({ novelId: a.id, original: 'Lin Dong', replacement: 'Lyn' });
+    expect(lin).toMatchObject({ novel: { id: a.id, title: 'Alpha' }, original: 'Lin Dong' });
+    const everywhere = await terms.create({ novelId: null, original: 'Qi', replacement: 'Chi' });
+    await terms.create({ novelId: b.id, original: 'Lin Dong', replacement: 'Forest' });
+
+    const originals = (list: { original: string; novel: { title: string } | null }[]) =>
+      list.map((term) => `${term.novel?.title ?? '*'}:${term.original}`);
+    expect(originals(await terms.list())).toEqual(['*:Qi', 'Alpha:Lin Dong', 'Beta:Lin Dong']);
+    expect(originals(await terms.listForNovel(a.id))).toEqual(['*:Qi', 'Alpha:Lin Dong']);
+
+    // One term per original text in a novel, and one in every novel.
+    expect(
+      await failsWith(terms.create({ novelId: a.id, original: 'Lin Dong', replacement: 'x' })),
+    ).toBe(409);
+    expect(await failsWith(terms.create({ novelId: null, original: 'Qi', replacement: 'x' }))).toBe(
+      409,
+    );
+    expect(
+      await failsWith(
+        terms.create({
+          novelId: '00000000-0000-4000-8000-000000000000',
+          original: 'x',
+          replacement: 'y',
+        }),
+      ),
+    ).toBe(404);
+
+    const changed = await terms.update(lin.id, { replacement: 'Lin Dong!', novelId: null });
+    expect(changed).toMatchObject({ novel: null, original: 'Lin Dong', replacement: 'Lin Dong!' });
+    expect(await failsWith(terms.update(everywhere.id, { original: 'Lin Dong' }))).toBe(409);
+
+    await terms.remove(everywhere.id);
+    expect(await failsWith(terms.remove(everywhere.id))).toBe(404);
+
+    // A novel's terms go with it.
+    await db.query('DELETE FROM novels WHERE id = $1', [b.id]);
+    expect(originals(await terms.list())).toEqual(['*:Lin Dong']);
   });
 });
 

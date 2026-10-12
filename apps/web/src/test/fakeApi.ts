@@ -17,6 +17,7 @@ import {
   type ReaderPreferences,
   type SourceRef,
   type SourceSite,
+  type Term,
   type UpdateRun,
   type FullFetch,
   isJobFinished,
@@ -130,6 +131,8 @@ export interface FakeApi {
   /** The bodies of successful password changes. */
   /** Management calls: `PATCH <id>`, `POST <id>`, `DELETE <id>`. */
   manageCalls: string[];
+  /** Terms, in the order they were added. */
+  terms: Term[];
 }
 
 /** What cards and search results show of a novel (NovelSummary). */
@@ -302,6 +305,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
     historyPageSize: 50,
     profile: null,
     manageCalls: [],
+    terms: [],
   };
 
   const reply = (status: number, data: unknown, error: string | null = null) =>
@@ -420,6 +424,52 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
     }
   };
 
+  /** /terms, as the core orders them: every novel's first, then by novel and original. */
+  const terms = (route: string, id: string, body: Record<string, unknown>) => {
+    const sorted = (list: Term[]) =>
+      [...list].sort(
+        (a, b) =>
+          Number(a.novel !== null) - Number(b.novel !== null) ||
+          (a.novel?.title ?? '').localeCompare(b.novel?.title ?? '') ||
+          a.original.localeCompare(b.original),
+      );
+    if (route === 'GET /terms') return reply(200, { terms: sorted(api.terms) });
+    if (route === 'GET /novels/:id/terms') {
+      const own = api.terms.filter((term) => term.novel === null || term.novel.id === id);
+      return reply(200, { terms: sorted(own) });
+    }
+    const existing = api.terms.find((term) => term.id === id);
+    if (route === 'DELETE /terms/:id') {
+      if (!existing) return notFound('This term no longer exists.');
+      api.terms = api.terms.filter((term) => term !== existing);
+      return reply(200, null);
+    }
+    if (route === 'PATCH /terms/:id' && !existing) return notFound('This term no longer exists.');
+    const novelId = body.novelId === undefined ? (existing?.novel?.id ?? null) : body.novelId;
+    const original = typeof body.original === 'string' ? body.original.trim() : existing?.original;
+    const replacement =
+      typeof body.replacement === 'string' ? body.replacement.trim() : existing?.replacement;
+    if (!original) return bad('Enter the text to replace.');
+    const clash = api.terms.find(
+      (term) =>
+        term !== existing && term.original === original && (term.novel?.id ?? null) === novelId,
+    );
+    if (clash) return reply(409, null, `This novel already has a term for “${original}”.`);
+    const novel = typeof novelId === 'string' ? api.novels.get(novelId)?.novel : undefined;
+    const term: Term = {
+      id: existing?.id ?? `term-${api.terms.length + 1}`,
+      novel: novel ? { id: novel.id, title: novel.title } : null,
+      original,
+      replacement: replacement ?? '',
+      createdAt: existing?.createdAt ?? '2026-10-11T10:00:00.000Z',
+      updatedAt: '2026-10-11T10:00:00.000Z',
+    };
+    api.terms = existing
+      ? api.terms.map((other) => (other === existing ? term : other))
+      : [...api.terms, term];
+    return reply(existing ? 200 : 201, { term });
+  };
+
   /** Editing a novel's details or cover, or deleting it. */
   const manage = (method: string, route: string, id: string, body: Record<string, unknown>) => {
     const entry = api.novels.get(id);
@@ -533,6 +583,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
           'recent',
           'stats',
           'tags',
+          'terms',
           'chapters',
           'status',
           'favorite',
@@ -558,6 +609,12 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
     const id = parts[1] ?? '';
 
     switch (route) {
+      case 'GET /terms':
+      case 'GET /novels/:id/terms':
+      case 'POST /terms':
+      case 'PATCH /terms/:id':
+      case 'DELETE /terms/:id':
+        return terms(route, id, body);
       case 'GET /sources':
         return reply(200, { sources: SOURCES });
       case 'GET /sources/:id/account':

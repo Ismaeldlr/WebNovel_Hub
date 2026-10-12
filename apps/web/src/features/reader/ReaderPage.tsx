@@ -4,6 +4,7 @@ import {
   type ReaderChapterResponse,
   type ReaderFetching,
   type ReaderNavigation,
+  type ReaderNovel,
   type ReaderPreferences,
 } from '@webnovel-hub/shared';
 import { useQuery } from '@tanstack/react-query';
@@ -26,6 +27,8 @@ import { plural, readingMinutes } from '../../lib/format';
 import { useMediaQuery, usePageTitle } from '../../lib/hooks';
 import { readerPath } from '../../lib/reading';
 import { readerStyle } from '../preferences/readerStyle';
+import { TermSelection } from '../terms/TermSelection';
+import { useNovelTerms } from '../terms/termActions';
 import { usePreferences } from '../preferences/usePreferences';
 import { ChapterNav } from './ChapterNav';
 import { ChaptersSheet } from './ChaptersSheet';
@@ -377,6 +380,29 @@ function ReaderFrame({
   );
 }
 
+/**
+ * A stored chapter's text with the novel's terms applied, once they are known (so the
+ * names don't change under the reader), and the "Add term" button for selections in it.
+ */
+function ReadyText({ novel, text }: { novel: ReaderNovel; text: string }) {
+  const terms = useNovelTerms(novel.id);
+  const textRef = useRef<HTMLDivElement>(null);
+  if (terms.isPending) {
+    return (
+      <div className={styles.text}>
+        <Skeleton label="Loading the chapter" />
+      </div>
+    );
+  }
+  const list = terms.data ?? [];
+  return (
+    <>
+      <ChapterText ref={textRef} text={text} terms={list} />
+      <TermSelection containerRef={textRef} novel={novel} terms={list} />
+    </>
+  );
+}
+
 interface BodyProps {
   novelId: string;
   chapter: number;
@@ -397,7 +423,7 @@ function ChapterBody({ novelId, chapter, data, refreshing }: BodyProps) {
   }
   switch (data.status) {
     case 'ready':
-      return <ChapterText text={data.content} />;
+      return <ReadyText novel={data.novel} text={data.content} />;
     case 'fetching':
       return <Fetching chapter={data} />;
     case 'failed':
