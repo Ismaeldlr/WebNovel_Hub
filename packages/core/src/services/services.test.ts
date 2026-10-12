@@ -61,6 +61,7 @@ describe('library', () => {
         source: null,
         favorite: null,
         unread: null,
+        tag: null,
         q: null,
         sort: 'title',
         page: 1,
@@ -108,12 +109,42 @@ describe('library', () => {
       source: null,
       favorite: null,
       unread: null,
+      tag: null,
       q: null,
       sort: 'progress',
       page: 1,
       limit: 10,
     });
     expect(page.items.map((item) => item.novel.title)).toEqual(['Half', 'None']);
+  });
+
+  it('filters by tag and lists the tags, ignoring case', async () => {
+    const library = createLibraryService(db);
+    const a = await insertNovel(db, { title: 'Alpha', tags: ['Action', 'Magic'] });
+    const b = await insertNovel(db, { title: 'Beta', tags: ['action'] });
+    await insertNovel(db, { title: 'Gamma', tags: [] });
+    const tagged = async (tag: string) =>
+      (
+        await library.list({
+          status: null,
+          source: null,
+          favorite: null,
+          unread: null,
+          tag,
+          q: null,
+          sort: 'title',
+          page: 1,
+          limit: 10,
+        })
+      ).items.map((item) => item.novel.id);
+
+    expect(await tagged('ACTION')).toEqual([a.id, b.id]);
+    expect(await tagged('magic')).toEqual([a.id]);
+    expect(await tagged('Act')).toEqual([]);
+    expect(await library.tags()).toEqual([
+      { tag: 'Action', novels: 2 },
+      { tag: 'Magic', novels: 1 },
+    ]);
   });
 });
 

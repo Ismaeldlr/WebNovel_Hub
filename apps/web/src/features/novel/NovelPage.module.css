@@ -72,6 +72,17 @@
   list-style: none;
 }
 
+.tagLink {
+  display: inline-flex;
+  border-radius: 999px;
+  text-decoration: none;
+}
+
+.tagLink:hover > span {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
 .facts {
   display: flex;
   flex-wrap: wrap;

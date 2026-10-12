@@ -2,7 +2,7 @@ import { LIBRARY_SORTS, type LibrarySort } from '@webnovel-hub/shared';
 import { useQuery } from '@tanstack/react-query';
 import { ListFilter, Search, Sparkles, Star, X } from 'lucide-react';
 import { useId, useState } from 'react';
-import { getSources } from '../../api/catalog';
+import { getSources, libraryApi } from '../../api/catalog';
 import { queryKeys } from '../../app/queryClient';
 import { Button, Select } from '../../components/ui';
 import { COMPACT_QUERY } from '../../lib/breakpoints';
@@ -21,7 +21,7 @@ interface LibraryFilterBarProps {
 }
 
 /**
- * The library's filters: title/author search as you type, source and
+ * The library's filters: title/author search as you type, source, tag and
  * sort, favourites only and unread NEW chapters only; the status is the tabs above (§5.5).
  * Native controls, each with a visible label, so the keyboard and screen readers get them
  * for free. On phones all but the search fold behind a "Sort & filter" button.
@@ -45,6 +45,21 @@ export function LibraryFilterBar({ filters, onChange, onClear, summary }: Librar
   // A source from the address that the list of sites doesn't name (yet) stays selectable.
   if (filters.source && !sourceChoices.some((choice) => choice.value === filters.source)) {
     sourceChoices.push({ value: filters.source, label: filters.source });
+  }
+  const tags = useQuery({
+    queryKey: queryKeys.libraryTags,
+    queryFn: ({ signal }) => libraryApi.tags(signal),
+  });
+  const tagChoices = [
+    { value: '', label: 'All tags' },
+    ...(tags.data ?? []).map(({ tag, novels }) => ({ value: tag, label: `${tag} (${novels})` })),
+  ];
+  // The address may spell the tag in another case than the list does.
+  const tagValue =
+    tagChoices.find((choice) => choice.value.toLowerCase() === filters.tag?.toLowerCase())?.value ??
+    filters.tag;
+  if (tagValue && !tagChoices.some((choice) => choice.value === tagValue)) {
+    tagChoices.push({ value: tagValue, label: tagValue });
   }
 
   return (
@@ -86,6 +101,16 @@ export function LibraryFilterBar({ filters, onChange, onClear, summary }: Librar
                 onChange={(event) => onChange({ source: event.target.value || null })}
               />
             </div>
+            {tagChoices.length > 1 && (
+              <div className={styles.select}>
+                <Select
+                  label="Tag"
+                  options={tagChoices}
+                  value={tagValue ?? ''}
+                  onChange={(event) => onChange({ tag: event.target.value || null })}
+                />
+              </div>
+            )}
             <div className={`${styles.select} ${styles.sort}`}>
               <Select
                 label="Sort by"

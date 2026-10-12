@@ -4,6 +4,7 @@ import { BookOpen, ExternalLink, SearchX } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { novelsApi } from '../../api/catalog';
 import { ApiError } from '../../api/client';
+import { libraryTagPath } from '../../app/navigation';
 import { queryKeys } from '../../app/queryClient';
 import { Cover } from '../../components/Cover';
 import {
@@ -114,7 +115,13 @@ function NovelView({ novel }: { novel: NovelDetail }) {
             <ul className={styles.tags} aria-label="Tags">
               {novel.tags.map((tag) => (
                 <li key={tag}>
-                  <Badge>{tag}</Badge>
+                  <Link
+                    to={libraryTagPath(tag)}
+                    className={styles.tagLink}
+                    aria-label={`${tag}: show your novels with this tag`}
+                  >
+                    <Badge>{tag}</Badge>
+                  </Link>
                 </li>
               ))}
             </ul>

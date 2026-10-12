@@ -6,6 +6,7 @@ export interface NovelFixture {
   sourceUrl?: string;
   title?: string;
   author?: string | null;
+  tags?: string[];
   chapters?: number;
   /** Chapter numbers whose text is stored. */
   fetched?: number[];
@@ -26,6 +27,7 @@ export async function insertNovel(
     sourceUrl = `https://www.royalroad.com/fiction/${novelCount}`,
     title = `Test Novel ${novelCount}`,
     author = 'A. Writer',
+    tags = ['Fantasy', 'Adventure'],
     chapters = 10,
     fetched = [],
     failed = [],
@@ -36,16 +38,7 @@ export async function insertNovel(
                          tags, total_chapters, last_scraped_at)
      VALUES ($1, $2, $3, $4, $5, $6, 'A description.', $7, $8, '2026-01-01T00:00:00.000Z')
      RETURNING id`,
-    [
-      source,
-      sourceUrl,
-      title,
-      author,
-      searchKey(title),
-      searchKey(author),
-      ['Fantasy', 'Adventure'],
-      chapters,
-    ],
+    [source, sourceUrl, title, author, searchKey(title), searchKey(author), tags, chapters],
   );
   const novelId = rows[0]?.id;
   if (!novelId) throw new Error('insertNovel: no id');

@@ -91,6 +91,7 @@ const libraryQuery = z.object({
     .optional(),
   favorite: booleanFlag('favorite'),
   unread: booleanFlag('unread'),
+  tag: searchText('tag'),
   sort: z
     .enum(LIBRARY_SORTS, { error: `sort must be one of ${LIBRARY_SORTS.join(', ')}.` })
     .optional(),
@@ -389,6 +390,7 @@ export function createRoutes(s: Services): Route[] {
             source: q.source ?? null,
             favorite: q.favorite ?? null,
             unread: q.unread ?? null,
+            tag: q.tag,
             q: q.q,
             sort: q.sort ?? DEFAULT_LIBRARY_SORT,
             page: q.page ?? 1,
@@ -398,6 +400,11 @@ export function createRoutes(s: Services): Route[] {
       },
     },
     { method: 'GET', path: '/library/stats', handle: async () => ok(await s.library.stats()) },
+    {
+      method: 'GET',
+      path: '/library/tags',
+      handle: async () => ok({ tags: await s.library.tags() }),
+    },
     {
       method: 'GET',
       path: '/library/new-chapters-count',

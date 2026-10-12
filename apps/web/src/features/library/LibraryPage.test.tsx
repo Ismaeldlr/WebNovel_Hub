@@ -244,6 +244,32 @@ describe('Library filters, sort and search', () => {
     await waitFor(() => expect(titles()).toEqual(['Lord of Mysteries']));
   });
 
+  it('filters by tag, from the filter bar or a novel’s tag', async () => {
+    const api = signedIn();
+    addNovel(api, { title: 'Alpha', tags: ['Action', 'Magic'], library: {} });
+    addNovel(api, { title: 'Beta', tags: ['action'], library: {} });
+    addNovel(api, { title: 'Gamma', tags: ['Romance'], library: {} });
+    const { user } = renderApp('/library?sort=title');
+    await waitFor(() => expect(titles()).toEqual(['Alpha', 'Beta', 'Gamma']));
+
+    // One choice per tag whatever its case, with how many novels have it.
+    const tagSelect = await within(filterBar()).findByRole('combobox', { name: 'Tag' });
+    expect(
+      within(tagSelect)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['All tags', 'Action (2)', 'Magic (1)', 'Romance (1)']);
+    await user.selectOptions(control('Tag'), 'Action (2)');
+    await waitFor(() => expect(titles()).toEqual(['Alpha', 'Beta']));
+    expect(location()).toBe('/library?tag=Action&sort=title');
+
+    await user.click(screen.getByRole('link', { name: 'Alpha' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Alpha' })).toBeVisible();
+    await user.click(screen.getByRole('link', { name: 'Magic: show your novels with this tag' }));
+    await waitFor(() => expect(titles()).toEqual(['Alpha']));
+    expect(control('Tag')).toHaveDisplayValue('Magic (1)');
+  });
+
   it('searches titles and authors as you type', async () => {
     const api = shelf();
     const { user } = renderApp('/library');

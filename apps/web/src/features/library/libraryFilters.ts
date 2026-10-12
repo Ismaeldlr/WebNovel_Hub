@@ -5,6 +5,7 @@ import {
   type LibraryQuery,
   type LibrarySort,
   type LibraryStatus,
+  NOVEL_DETAIL_LIMITS,
   SOURCE_KEY_PATTERN,
 } from '@webnovel-hub/shared';
 import { useEffect, useRef } from 'react';
@@ -16,6 +17,8 @@ export interface LibraryFilters {
   source: string | null;
   favorite: boolean;
   unread: boolean;
+  /** One tag, as the novels spell it; matched ignoring case. */
+  tag: string | null;
   sort: LibrarySort;
   q: string;
 }
@@ -31,6 +34,8 @@ export const SORT_LABELS: Record<LibrarySort, string> = {
 /** Where the session's filters are kept; cleared when the session ends. */
 export const LIBRARY_FILTERS_KEY = 'webnovel-hub.library-filters';
 
+const MAX_TAG_LENGTH = NOVEL_DETAIL_LIMITS.tag;
+
 const isStatus = (value: string | null): value is LibraryStatus =>
   (LIBRARY_STATUSES as readonly (string | null)[]).includes(value);
 const isSort = (value: string | null): value is LibrarySort =>
@@ -41,11 +46,13 @@ export function parseFilters(params: URLSearchParams): LibraryFilters {
   const status = params.get('status');
   const source = params.get('source');
   const sort = params.get('sort');
+  const tag = (params.get('tag') ?? '').trim();
   return {
     status: isStatus(status) ? status : null,
     source: source !== null && SOURCE_KEY_PATTERN.test(source) ? source : null,
     favorite: params.get('favorite') === 'true',
     unread: params.get('unread') === 'true',
+    tag: tag !== '' && tag.length <= MAX_TAG_LENGTH ? tag : null,
     sort: isSort(sort) ? sort : DEFAULT_LIBRARY_SORT,
     q: (params.get('q') ?? '').trim(),
   };
@@ -58,6 +65,7 @@ export function filtersToParams(filters: LibraryFilters): URLSearchParams {
   if (filters.source) params.set('source', filters.source);
   if (filters.favorite) params.set('favorite', 'true');
   if (filters.unread) params.set('unread', 'true');
+  if (filters.tag) params.set('tag', filters.tag);
   if (filters.sort !== DEFAULT_LIBRARY_SORT) params.set('sort', filters.sort);
   if (filters.q) params.set('q', filters.q);
   return params;
@@ -70,6 +78,7 @@ export function isFiltered(filters: LibraryFilters): boolean {
     filters.source !== null ||
     filters.favorite ||
     filters.unread ||
+    filters.tag !== null ||
     filters.q !== ''
   );
 }
@@ -81,6 +90,7 @@ export function toLibraryQuery(filters: LibraryFilters): LibraryQuery {
     ...(filters.source && { source: filters.source }),
     ...(filters.favorite && { favorite: true }),
     ...(filters.unread && { unread: true }),
+    ...(filters.tag && { tag: filters.tag }),
     sort: filters.sort,
     ...(filters.q && { q: filters.q }),
   };
@@ -147,6 +157,7 @@ export function useLibraryFilters() {
     restore,
     update,
     /** Clears the filters and the search; the sort stays. */
-    clear: () => update({ status: null, source: null, favorite: false, unread: false, q: '' }),
+    clear: () =>
+      update({ status: null, source: null, favorite: false, unread: false, tag: null, q: '' }),
   };
 }

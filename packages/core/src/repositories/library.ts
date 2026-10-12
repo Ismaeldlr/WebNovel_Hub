@@ -4,6 +4,7 @@ import {
   type LibrarySort,
   type LibraryStats,
   type LibraryStatus,
+  type LibraryTag,
 } from '@webnovel-hub/shared';
 import type { Queryable } from '../db/database.js';
 import { queryValues } from '../db/query-values.js';
@@ -38,6 +39,7 @@ export interface LibraryFilters {
   source: string | null;
   favorite: boolean | null;
   unread: boolean | null;
+  tag: string | null;
   q: string | null;
 }
 
@@ -73,6 +75,11 @@ export function libraryFilterSql(filters: LibraryFilters): { where: string; valu
   if (filters.unread !== null) {
     conditions.push(filters.unread ? HAS_UNREAD_NEW : `NOT ${HAS_UNREAD_NEW}`);
   }
+  if (filters.tag !== null) {
+    conditions.push(
+      `EXISTS (SELECT 1 FROM json_each(n.tags) t WHERE t.value = ${param(filters.tag)} COLLATE NOCASE)`,
+    );
+  }
   const search = titleOrAuthorMatch(filters.q ?? '', param);
   if (search !== null) conditions.push(search);
   return { where: conditions.join(' AND '), values };
@@ -99,6 +106,22 @@ export async function listLibrary(
     db.query<{ total: number }>(`SELECT count(*) AS total ${FROM_ENTRIES} WHERE ${where}`, values),
   ]);
   return { items: items.rows.map(toItem), total: total.rows[0]?.total ?? 0 };
+}
+
+/**
+ * Every tag of the novels in the library, A to Z. Spellings that differ only in case are one
+ * tag, shown in the first of them ("Action" before "action").
+ */
+export async function listLibraryTags(db: Queryable): Promise<LibraryTag[]> {
+  const { rows } = await db.query<{ tag: string; novels: number }>(
+    `SELECT min(t.value) AS tag, count(DISTINCT e.novel_id) AS novels
+     FROM library_entries e
+     JOIN novels n ON n.id = e.novel_id
+     JOIN json_each(n.tags) t
+     GROUP BY t.value COLLATE NOCASE
+     ORDER BY tag COLLATE NOCASE`,
+  );
+  return rows;
 }
 
 /** One novel of the library, or null when it isn't there. */

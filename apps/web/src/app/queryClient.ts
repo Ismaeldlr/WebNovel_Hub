@@ -15,6 +15,7 @@ export const queryKeys = {
   libraryLists: ['library', 'list'] as const,
   libraryList: (params: object) => ['library', 'list', params] as const,
   libraryStats: ['library', 'stats'] as const,
+  libraryTags: ['library', 'tags'] as const,
   newChaptersCount: ['library', 'new-chapters-count'] as const,
   /** A novel's page; its chapter pages and update check live under the same prefix. */
   novel: (novelId: string) => ['novel', novelId] as const,

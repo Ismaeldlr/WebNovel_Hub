@@ -13,7 +13,7 @@
 
 .fields {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 2fr);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
   gap: var(--space-3);
   align-items: end;
 }
@@ -136,16 +136,17 @@
   color: var(--ink-soft);
 }
 
-/* The source and sort, side by side. */
+/* The source, tag (once the library has tags) and sort, side by side. */
 .more {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
   gap: inherit;
   align-items: end;
 }
 
 /* A narrower bar: the search gets its own row above the selects. */
-@container (max-width: 40rem) {
+@container (max-width: 50rem) {
   .fields {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -165,6 +166,11 @@
 
   .fields > button {
     justify-self: start;
+  }
+
+  .more {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row;
   }
 
   .summary {

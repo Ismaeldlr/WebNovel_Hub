@@ -36,11 +36,24 @@ export interface LibraryQuery {
   favorite?: boolean;
   /** `true` for novels with unread NEW chapters only (`false`: without). */
   unread?: boolean;
+  /** One tag the novel must have, ignoring case (omitted: any). */
+  tag?: string;
   sort?: LibrarySort;
   /** Words that must each appear in the title or the author. */
   q?: string;
   page?: number;
   limit?: number;
+}
+
+/** A tag of novels in the library, with how many of them have it. */
+export interface LibraryTag {
+  tag: string;
+  novels: number;
+}
+
+/** Response of GET /library/tags: every tag in the library, A to Z, ignoring case. */
+export interface LibraryTagsResponse {
+  tags: LibraryTag[];
 }
 
 /** Response of GET /library: the novels that match, in `sort` order. */

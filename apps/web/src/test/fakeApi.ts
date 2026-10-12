@@ -194,6 +194,7 @@ interface NovelOptions {
   latestChapterAt?: string | null;
   chapters?: number;
   sourceUrl?: string;
+  tags?: string[];
   /** An EPUB import: no source site, nothing to check for updates. */
   epub?: boolean;
   /** Put it in the library, with this state. */
@@ -221,7 +222,7 @@ export function addNovel(api: FakeApi, options: NovelOptions = {}): string {
     title: options.title ?? `Novel ${counter}`,
     author: options.author === undefined ? 'A. Writer' : options.author,
     description: 'A first paragraph.\n\nA second paragraph.',
-    tags: ['Fantasy', 'Adventure'],
+    tags: options.tags ?? ['Fantasy', 'Adventure'],
     coverUrl: null,
     totalChapters: total,
     updateFailure: null,
@@ -317,6 +318,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
     if (!entry || !library) return null;
     return { novel: summary(entry.novel), library };
   };
+  const novelTags = (id: string) => api.novels.get(id)?.novel.tags ?? [];
 
   /** Novels whose title or author has every word of `text`. */
   const catalogItems = (text: string): SearchItem[] =>
@@ -530,6 +532,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
         ![
           'recent',
           'stats',
+          'tags',
           'chapters',
           'status',
           'favorite',
@@ -614,6 +617,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
         const source = search.get('source');
         const favorite = search.get('favorite');
         const unread = search.get('unread');
+        const tag = search.get('tag')?.toLowerCase() ?? null;
         const q = search.get('q') ?? '';
         const items = [...api.library.keys()]
           .map((novelId) => item(novelId))
@@ -624,6 +628,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
               (source === null || novel.source.key === source) &&
               (favorite === null || library.isFavorite === (favorite === 'true')) &&
               (unread === null || library.newChapterCount > 0 === (unread === 'true')) &&
+              (tag === null || novelTags(novel.id).some((t) => t.toLowerCase() === tag)) &&
               matchesWords(novel, q),
           )
           .sort((a, b) => LIBRARY_ORDER[sort](a, b) || byTitle(a, b));
@@ -685,6 +690,19 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
           page,
           limit,
           total: api.updateRuns.length,
+        });
+      }
+      case 'GET /library/tags': {
+        const counts = new Map<string, { tag: string; novels: number }>();
+        for (const id of api.library.keys()) {
+          for (const tag of novelTags(id)) {
+            const known = counts.get(tag.toLowerCase());
+            if (known) known.novels += 1;
+            else counts.set(tag.toLowerCase(), { tag, novels: 1 });
+          }
+        }
+        return reply(200, {
+          tags: [...counts.values()].sort((a, b) => a.tag.localeCompare(b.tag)),
         });
       }
       case 'GET /library/stats': {
