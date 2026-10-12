@@ -105,8 +105,8 @@ const THEME_ICONS: Record<ThemePreference, LucideIcon> = {
 };
 
 /**
- * A quick way to the theme: the same list as the ThemePicker, saved to the
- * user's preferences like any other change, so every page and device follows.
+ * A quick way to the theme: the same list as the ThemePicker, saved to the reader's
+ * preferences like any other change, so every page follows.
  */
 export function ThemeMenu() {
   const { preference } = useTheme();

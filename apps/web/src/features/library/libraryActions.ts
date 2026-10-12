@@ -98,8 +98,8 @@ export function useRemoveFromLibrary() {
 }
 
 /**
- * Status and favourite change at once on screen (optimistic), then follow the server's
- * answer; a failure puts back what the server has.
+ * Status and favourite change at once on screen (optimistic), then follow the library's
+ * answer; a failure puts back what the library has.
  */
 function useLibraryUpdate<Vars extends { novelId: string }>(options: {
   request: (vars: Vars) => Promise<LibraryItem>;

@@ -51,7 +51,7 @@ export interface NovelDetail extends NovelSummary {
   library: LibraryState | null;
 }
 
-/** Limits of the details a reader may edit (PATCH /api/novels/:id). */
+/** Limits of the details a reader may edit (PATCH /novels/:id). */
 export const NOVEL_DETAIL_LIMITS = {
   title: 300,
   author: 200,
@@ -60,7 +60,7 @@ export const NOVEL_DETAIL_LIMITS = {
   tag: 60,
 } as const;
 
-/** Body of PATCH /api/novels/:id: any of these, at least one; never chapter text. */
+/** Body of PATCH /novels/:id: any of these, at least one; never chapter text. */
 export interface NovelDetailsUpdate {
   title?: string;
   /** Empty or null clears it. */
@@ -69,14 +69,14 @@ export interface NovelDetailsUpdate {
   tags?: string[];
 }
 
-/** Uploaded covers (POST /api/novels/:id/cover, field `cover`): JPEG, PNG or WebP. */
+/** Uploaded covers (POST /novels/:id/cover, field `cover`): JPEG, PNG or WebP. */
 export const COVER_UPLOAD = {
   maxBytes: 8 * 1024 * 1024,
   extensions: ['jpg', 'jpeg', 'png', 'webp'],
   mediaTypes: ['image/jpeg', 'image/png', 'image/webp'],
 } as const;
 
-/** Response of GET /api/novels/:id. */
+/** Response of GET /novels/:id. */
 export interface NovelResponse {
   novel: NovelDetail;
 }
@@ -102,10 +102,10 @@ export interface ChapterSummary {
 export const CHAPTER_ORDERS = ['asc', 'desc'] as const;
 export type ChapterOrder = (typeof CHAPTER_ORDERS)[number];
 
-/** Limits of GET /api/novels/:id/chapters?limit= (at most 200 per request). */
+/** Limits of GET /novels/:id/chapters?limit= (at most 200 per request). */
 export const CHAPTER_PAGE_LIMITS = { default: 50, max: 200 } as const;
 
-/** Response of GET /api/novels/:id/chapters?page=&limit=&order=&q=. */
+/** Response of GET /novels/:id/chapters?page=&limit=&order=&q=. */
 export interface ChapterPage {
   chapters: ChapterSummary[];
   /** 1-based page number. */

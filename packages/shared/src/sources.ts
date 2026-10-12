@@ -34,7 +34,7 @@ export interface SourceSite {
 }
 
 /**
- * Response of GET /api/sources/:key/account and POST /api/sources/:key/account/link, for
+ * Response of GET /sources/:key/account and POST /sources/:key/account/link, for
  * sites that show some chapters only to signed-in readers (WTR Lab).
  */
 export interface SourceAccountResponse {
@@ -44,7 +44,7 @@ export interface SourceAccountResponse {
   signedIn: boolean | null;
 }
 
-/** Response of GET /api/sources: importable sources first, then by name. */
+/** Response of GET /sources: importable sources first, then by name. */
 export interface SourcesResponse {
   sources: SourceSite[];
 }

@@ -5,6 +5,7 @@
 // No console window next to the app in release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod backup;
 mod db;
 mod render;
 mod shell;
@@ -25,6 +26,11 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             db::db_run,
             db::db_exec,
+            backup::temp_backup_path,
+            backup::save_backup,
+            backup::pick_backup,
+            backup::kept_backups,
+            backup::restore_library,
             render::render,
             render::render_result,
             render::open_site_window,

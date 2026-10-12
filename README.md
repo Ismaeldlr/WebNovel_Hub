@@ -59,6 +59,9 @@ version is out and opens its download.
 - **New chapters.** The app checks the novels you're reading for new chapters every few
   hours, and can notify you. You can also check any novel by hand.
 - **Export to EPUB.** Save a downloaded novel as an EPUB file for any e-book reader.
+- **Backup and restore.** Save your whole library (novels, saved chapters, progress and
+  settings) to one `.whub` file from Settings, and restore it on another computer or phone.
+  The library a restore replaces is kept on the device, so you can put it back.
 - **Reading history and stats.** Chapters read by day or by novel, reading streaks and 90 days
   of activity.
 - **Your data stays on your device.** No account, no server, no tracking. The app only
@@ -102,6 +105,9 @@ Everything is in one SQLite database on your device:
 - **Windows:** `%APPDATA%\io.github.ismaeldlr.webnovelhub\library.db`. Uninstalling the app
   keeps it unless you tick the option to delete app data.
 - **Android:** in the app's private storage. Uninstalling the app deletes it.
+
+To keep a copy, or to move your library to another computer or phone, use **Settings →
+Backup**: it saves the database as a `.whub` file, which either app can restore.
 
 ## Building from source
 

@@ -3,20 +3,15 @@ import { Navigate, Route, Routes } from 'react-router';
 import { AppGate } from './app/AppGate';
 import { HOME_PATH } from './app/navigation';
 import { Splash } from './components/Splash';
-import type * as Placeholders from './features/pages/placeholders';
 import { AppShell } from './features/shell/AppShell';
 import { RouteErrorBoundary } from './features/shell/RouteErrorBoundary';
 
-type PageModule = typeof Placeholders;
-
-/** Each page is its own bundle, loaded when first visited. */
-const page = (name: keyof PageModule) =>
-  lazy(() =>
-    import('./features/pages/placeholders').then((module) => ({
-      default: module[name] as ComponentType,
-    })),
-  );
-
+// Each page is its own bundle, loaded when first visited.
+const ContinueReadingPage = lazy(() =>
+  import('./features/pages/ContinueReadingPage').then((module) => ({
+    default: module.ContinueReadingPage,
+  })),
+);
 const NotFoundPage = lazy(() =>
   import('./features/pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })),
 );
@@ -60,7 +55,7 @@ const PAGES: { path: string; Page: ComponentType }[] = [
   { path: 'library', Page: LibraryPage },
   { path: 'add', Page: AddNovelsPage },
   { path: 'novels/:novelId', Page: NovelPage },
-  { path: 'reader', Page: page('ReaderEntryPage') },
+  { path: 'reader', Page: ContinueReadingPage },
   { path: 'history', Page: HistoryPage },
   { path: 'updates', Page: UpdateJobsPage },
   { path: 'exports', Page: ExportsPage },

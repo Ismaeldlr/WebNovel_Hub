@@ -56,14 +56,13 @@ type SearchItem = { novel: NovelSummary; inLibrary: boolean };
 type Novel = Omit<NovelDetail, 'library'>;
 
 export interface FakeApi {
-  /** The signed-in user, as the session cookie would say. */
-  /** When true, every request fails as if the server were down. */
+  /** When true, every request fails as if the library couldn't be read. */
   unreachable: boolean;
   /** "METHOD /path?query" of every request, in order. */
   calls: string[];
   /** The catalog: novels and their chapters. */
   novels: Map<string, { novel: Novel; chapters: ChapterSummary[] }>;
-  /** The signed-in user's library, by novel id. */
+  /** The library, by novel id. */
   library: Map<string, LibraryState>;
   jobs: Map<string, IngestionJob>;
   /**

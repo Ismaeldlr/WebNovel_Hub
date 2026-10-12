@@ -90,7 +90,7 @@ describe('Add Novels from an EPUB file', () => {
     expect(checkEpubFile(epub('Fine.EPUB'))).toBeNull();
   });
 
-  it("shows the server's reason and lets the reader try again", async () => {
+  it('shows why it failed and lets the reader try again', async () => {
     const api = signedIn();
     api.epubOutcome = { status: 400, error: 'This EPUB has no chapters with text to read.' };
     const { user } = renderApp('/add?from=epub');

@@ -158,7 +158,7 @@ export function MenuSeparator() {
   return <div role="separator" className={styles.separator} />;
 }
 
-/** A non-interactive heading inside a menu, e.g. who is signed in. */
+/** A non-interactive heading inside a menu, e.g. what its items choose. */
 export function MenuHeader({ children }: { children: ReactNode }) {
   return (
     <div role="presentation" className={styles.header}>

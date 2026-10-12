@@ -3,15 +3,12 @@ import { createContext, useContext } from 'react';
 import { mirroredTheme } from '../features/preferences/store';
 
 /**
- * One theme for every page, the reader included. It is one of the user's
- * preferences, so it follows them to every device; until those load it comes from this
- * device's copy of them, which index.html also paints before the first frame.
+ * One theme for every page, the reader included. It is one of the reader's preferences;
+ * until those load it comes from this device's copy of them, which index.html also
+ * paints before the first frame.
  */
 
 export const DARK_QUERY = '(prefers-color-scheme: dark)';
-
-/** Where each device kept its own app theme in older versions. Removed when the app starts. */
-export const LEGACY_THEME_STORAGE_KEY = 'webnovel-hub.theme';
 
 /** The theme to start from: this device's copy of the preferences, else the device's. */
 export function initialPreference(): ThemePreference {
@@ -31,7 +28,7 @@ export interface ThemeContextValue {
   theme: Theme;
   /**
    * Shows `preference`. Only for ThemeFromPreferences, which passes on the saved one: to
-   * change the theme, save it with useUpdatePreferences, so every device gets it.
+   * change the theme, save it with useUpdatePreferences, so every page gets it.
    */
   showPreference: (preference: ThemePreference) => void;
 }

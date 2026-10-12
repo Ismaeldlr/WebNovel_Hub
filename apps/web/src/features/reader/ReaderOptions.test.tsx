@@ -91,12 +91,11 @@ describe('reading options in the reader', () => {
     await expectStyle('--reader-font-size', '1.375rem');
     expect(pageTheme()).toBe('sepia');
     expect(JSON.parse(localStorage.getItem(PREFERENCES_STORAGE_KEY) ?? '{}')).toMatchObject({
-      userId: 'reader',
       preferences: { fontSize: 22, theme: 'sepia' },
     });
     first.unmount();
 
-    // A reload while the server is slow to answer: this device's copy applies at once.
+    // A reload while the library is slow to answer: this device's copy applies at once.
     let answer = () => undefined as void;
     api.preferencesGate = new Promise((resolve) => (answer = resolve));
     renderApp(`/reader/${id}/2`);

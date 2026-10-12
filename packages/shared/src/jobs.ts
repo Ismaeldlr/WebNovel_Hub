@@ -15,16 +15,11 @@ export interface ScrapeFailure {
   message: string;
 }
 
-/** Body of POST /api/import/url. */
-export interface ImportUrlRequest {
-  url: string;
-}
-
 /** EPUB uploads are at most 50 MB. */
 export const EPUB_MAX_BYTES = 50 * 1024 * 1024;
 
 /**
- * Response of POST /api/import/epub (multipart, the file in the field `file`): 201 with
+ * Response of POST /import/epub (multipart, the file in the field `file`): 201 with
  * `duplicate: false` for a new catalog novel; 200 with `duplicate: true` when the catalog
  * already had this exact file and the novel was added to the uploader's library.
  * An upload of a file already in the user's library is a 409 with an ImportConflict.
@@ -36,13 +31,13 @@ export interface ImportEpubResponse {
   duplicate: boolean;
 }
 
-/** Response of POST /api/import/url (202): the ingestion job to poll at GET /api/jobs/:id. */
+/** Response of POST /import/url (202): the ingestion job to poll at GET /jobs/:id. */
 export interface ImportUrlResponse {
   jobId: string;
 }
 
 /**
- * `data` of the 409 from POST /api/import/url: the URL is already a novel in the catalog
+ * `data` of the 409 from POST /import/url: the URL is already a novel in the catalog
  *. The client offers "Open", or "Add to library" when `inLibrary` is false.
  */
 export interface ImportConflict {
@@ -164,7 +159,7 @@ export interface FullFetch {
 }
 
 /**
- * Response of GET /api/novels/:id/fetch-all, and of POST (202, the fetch that was queued
+ * Response of GET /novels/:id/fetch-all, and of POST (202, the fetch that was queued
  * or the one already waiting or running): the novel's latest whole-novel fetch, whoever
  * asked for it, and how many of its chapters are stored.
  */
@@ -176,15 +171,15 @@ export interface FullFetchResponse {
   totalChapters: number;
 }
 
-/** Response of GET /api/jobs/:id. */
+/** Response of GET /jobs/:id. */
 export interface JobResponse {
   job: Job;
 }
 
-/** Limits of GET /api/import/recent?limit=. */
+/** Limits of GET /import/recent?limit=. */
 export const RECENT_IMPORTS_LIMITS = { default: 10, max: 50 } as const;
 
-/** Response of GET /api/import/recent: the user's URL imports, newest first. */
+/** Response of GET /import/recent: the user's URL imports, newest first. */
 export interface RecentImportsResponse {
   jobs: IngestionJob[];
 }

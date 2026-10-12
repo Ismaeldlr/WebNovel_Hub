@@ -39,13 +39,13 @@ function query(params: Record<string, string | number | boolean | null | undefin
 
 const id = (value: string) => encodeURIComponent(value);
 
-/** GET /api/sources. */
+/** GET /sources. */
 export async function getSources(signal?: AbortSignal) {
   const { sources } = await apiRequest<SourcesResponse>('/sources', { signal });
   return sources;
 }
 
-/** /api/sources/:key/account: sites that show some chapters only to signed-in readers. */
+/** /sources/:key/account: sites that show some chapters only to readers signed in there. */
 export const accountsApi = {
   status: (source: string, signal?: AbortSignal) =>
     apiRequest<SourceAccountResponse>(`/sources/${id(source)}/account`, { signal }),
@@ -57,7 +57,7 @@ export const accountsApi = {
     }),
 };
 
-/** /api/import and /api/jobs. */
+/** /import and /jobs. */
 export const importsApi = {
   /** Resolves to the job id (202); a 409 throws an ApiError with an ImportConflict. */
   importUrl: async (url: string) =>
@@ -78,7 +78,7 @@ export interface ChapterParams {
   q: string;
 }
 
-/** /api/novels, and managing a novel you imported. */
+/** /novels, and managing a novel you imported. */
 export const novelsApi = {
   /** PATCH: the title, author, description or tags; resolves to the novel as saved. */
   updateDetails: async (novelId: string, changes: NovelDetailsUpdate) =>
@@ -101,7 +101,7 @@ export const novelsApi = {
     apiRequest<ChapterPage>(`/novels/${id(novelId)}/chapters${query({ ...params })}`, { signal }),
 };
 
-/** /api/library. */
+/** /library. */
 export const libraryApi = {
   /** A page of the library, filtered and sorted. */
   list: (params: LibraryQuery, signal?: AbortSignal) =>
@@ -135,7 +135,7 @@ export const searchApi = {
 const chapterPath = (novelId: string, chapter: number) =>
   `/reader/${id(novelId)}/chapters/${chapter}`;
 
-/** /api/reader. */
+/** /reader. */
 export const readerApi = {
   /** 200 ready or failed, 202 while the chapter is being fetched. */
   chapter: (novelId: string, chapter: number, signal?: AbortSignal) =>
@@ -177,7 +177,7 @@ export const fullFetchApi = {
   /** Queues it (202), or returns the one already waiting or running. */
   start: (novelId: string) =>
     apiRequest<FullFetchResponse>(`/novels/${id(novelId)}/fetch-all`, { method: 'POST' }),
-  /** Stops the signed-in reader's fetch; the chapters stored so far stay. */
+  /** Stops the fetch; the chapters stored so far stay. */
   cancel: (novelId: string) =>
     apiRequest<FullFetchResponse>(`/novels/${id(novelId)}/fetch-all`, { method: 'DELETE' }),
 };

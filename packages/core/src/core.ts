@@ -1,5 +1,6 @@
 import type { CheckList } from './background/checks.js';
 import { buildCheckList } from './background/list.js';
+import { type LibrarySummary, inspectBackup, summarizeLibrary, writeBackup } from './db/backup.js';
 import { type Database, type SqlDriver, createDatabase } from './db/database.js';
 import { type QueueStatus, queueStatus } from './jobs/queue.js';
 import { JobRunner } from './jobs/runner.js';
@@ -54,6 +55,19 @@ export interface Core {
   queueStatus(): Promise<QueueStatus>;
   /** What a background task checks while the app is closed (see background/checks.ts). */
   checkList(): Promise<CheckList>;
+  backups: {
+    /** Writes a copy of the library to a file that doesn't exist yet. */
+    write(path: string): Promise<void>;
+    /** What a backup file holds; throws, worded for the reader, when it can't be restored. */
+    inspect(path: string): Promise<LibrarySummary>;
+    /** What the open library holds. */
+    summary(): Promise<LibrarySummary>;
+  };
+  /**
+   * Stops the jobs and closes the database with everything written to its main file, so
+   * the platform can move the file (to put a backup in its place).
+   */
+  release(): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -127,6 +141,16 @@ export async function createCore(options: CoreOptions): Promise<Core> {
     runner,
     queueStatus: () => queueStatus(db),
     checkList: () => buildCheckList(db),
+    backups: {
+      write: (path) => writeBackup(db, path),
+      inspect: (path) => inspectBackup(db, path),
+      summary: () => summarizeLibrary(db),
+    },
+    async release() {
+      await runner?.stop();
+      await db.query('PRAGMA wal_checkpoint(TRUNCATE)');
+      await db.close();
+    },
     async close() {
       await runner?.stop();
       await db.close();

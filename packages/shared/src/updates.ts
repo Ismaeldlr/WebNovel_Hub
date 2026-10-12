@@ -43,7 +43,7 @@ export interface UpdateRun {
 }
 
 /**
- * Response of POST /api/novels/:id/update-check (202): the manual check that was queued,
+ * Response of POST /novels/:id/update-check (202): the manual check that was queued,
  * or the novel's check that was already waiting or running.
  */
 export interface StartUpdateCheckResponse {
@@ -51,18 +51,18 @@ export interface StartUpdateCheckResponse {
 }
 
 /**
- * Response of GET /api/novels/:id/update-check: the novel's latest manual check, whoever
+ * Response of GET /novels/:id/update-check: the novel's latest manual check, whoever
  * asked for it, or null if nobody has. Clients poll it while the check is active.
  */
 export interface UpdateCheckResponse {
   check: UpdateRun | null;
 }
 
-/** Limits of GET /api/update-jobs?limit=. */
+/** Limits of GET /update-jobs?limit=. */
 export const UPDATE_RUN_PAGE_LIMITS = { default: 20, max: 100 } as const;
 
 /**
- * Response of GET /api/update-jobs?page=&limit=: scheduled runs and the user's own manual
+ * Response of GET /update-jobs?page=&limit=: scheduled runs and the user's own manual
  * checks, newest first.
  */
 export interface UpdateRunPage {

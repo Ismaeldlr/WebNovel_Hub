@@ -2,7 +2,8 @@
 //! app sends between BEGIN and COMMIT. Statements, values and rows travel as JSON, with
 //! bytes (covers) as `{"$bytes": "<base64>"}`, the same format as the development bridge.
 
-use std::path::Path;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
 
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -12,20 +13,71 @@ use serde::Deserialize;
 use serde_json::{json, Map, Value};
 use tauri::State;
 
-pub struct Db(Mutex<Connection>);
+pub struct Db {
+    connection: Mutex<Connection>,
+    path: PathBuf,
+}
+
+fn connect(path: &Path) -> rusqlite::Result<Connection> {
+    let connection = Connection::open(path)?;
+    connection.execute_batch("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;")?;
+    Ok(connection)
+}
+
+fn text(error: impl std::fmt::Display) -> String {
+    error.to_string()
+}
+
+/// Moves the library at `path` to `keep_as` and copies `backup` in its place; if the copy
+/// fails, the library goes back.
+fn swap_files(path: &Path, backup: &Path, keep_as: &Path) -> Result<(), String> {
+    fs::rename(path, keep_as).map_err(text)?;
+    for suffix in ["-wal", "-shm"] {
+        let mut side = path.as_os_str().to_owned();
+        side.push(suffix);
+        let _ = fs::remove_file(side);
+    }
+    if let Err(error) = fs::copy(backup, path) {
+        let _ = fs::remove_file(path);
+        let _ = fs::rename(keep_as, path);
+        return Err(text(error));
+    }
+    Ok(())
+}
 
 impl Db {
     pub fn open(path: &Path) -> rusqlite::Result<Self> {
-        let connection = Connection::open(path)?;
-        connection.execute_batch("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;")?;
-        Ok(Self(Mutex::new(connection)))
+        Ok(Self {
+            connection: Mutex::new(connect(path)?),
+            path: path.to_path_buf(),
+        })
     }
 
     fn connection(&self) -> MutexGuard<'_, Connection> {
         // A panic while the lock was held leaves the connection itself intact.
-        self.0
+        self.connection
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    /// Puts the library file at `backup` in place of this one, which moves to `keep_as`.
+    /// Whatever fails, the connection is open again on a library afterwards.
+    pub fn replace_with(&self, backup: &Path, keep_as: &Path) -> Result<(), String> {
+        let mut connection = self.connection();
+        connection
+            .execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
+            .map_err(text)?;
+        let current = std::mem::replace(
+            &mut *connection,
+            Connection::open_in_memory().map_err(text)?,
+        );
+        if let Err((current, error)) = current.close() {
+            *connection = current;
+            return Err(text(error));
+        }
+        let swapped = swap_files(&self.path, backup, keep_as);
+        *connection = connect(&self.path).map_err(text)?;
+        swapped
     }
 
     /// Whether the reader chose to keep fetching after the window is closed. False until

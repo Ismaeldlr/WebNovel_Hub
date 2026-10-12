@@ -82,3 +82,24 @@ export const checkForUpdate = (): Promise<string | null> => invoke<string | null
 
 /** Downloads and installs the newer release; the app restarts into it. */
 export const installUpdate = (): Promise<void> => invoke('install_update');
+
+/** A library replaced by a restore, kept in the app's folder. */
+export interface KeptBackup {
+  name: string;
+  path: string;
+}
+
+/** Backups: the core writes the copy, the shell saves it, picks one and swaps it in. */
+export const backups = {
+  /** A path in the app's folder where a backup named `name` can be written. */
+  tempPath: (name: string): Promise<string> => invoke<string>('temp_backup_path', { name }),
+  /** Asks where to save the backup written at `path`; false when the reader cancels. */
+  save: (path: string, name: string): Promise<boolean> =>
+    invoke<boolean>('save_backup', { path, name }),
+  /** Asks for a backup file; the path of the app's copy of it, or null when cancelled. */
+  pick: (): Promise<string | null> => invoke<string | null>('pick_backup'),
+  kept: (): Promise<KeptBackup[]> => invoke<KeptBackup[]>('kept_backups'),
+  /** Puts the backup at `path` in place of the library, which is kept as `keepAs`. */
+  replaceLibrary: (path: string, keepAs: string): Promise<void> =>
+    invoke('restore_library', { path, keepAs }),
+};
