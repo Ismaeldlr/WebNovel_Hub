@@ -23,6 +23,9 @@ interface ShellPlugin {
   setKeepVisible(options: { on: boolean }): Promise<void>;
   batteryRestricted(): Promise<{ restricted: boolean }>;
   askBatteryExemption(): Promise<void>;
+  pickBackup(): Promise<{ path?: string }>;
+  keptBackups(): Promise<{ backups: { name: string; path: string }[] }>;
+  replaceLibrary(options: { path: string; keepAs: string }): Promise<void>;
 }
 
 /** The app's own plugin (apps/mobile: ShellPlugin.java). */

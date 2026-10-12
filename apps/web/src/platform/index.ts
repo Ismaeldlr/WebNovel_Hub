@@ -20,6 +20,29 @@ export interface AndroidShell {
   askBatteryExemption(): Promise<void>;
 }
 
+/** A library replaced by a restore, kept on the device. */
+export interface KeptBackup {
+  name: string;
+  path: string;
+}
+
+/** The shell's half of backups; the core writes and checks the library files. */
+export interface BackupShell {
+  /** A path in the app's own folder where a backup named `name` can be written. */
+  tempPath(name: string): Promise<string>;
+  /** Saves the backup written at `path` where the reader chooses; false when cancelled. */
+  save(path: string, name: string): Promise<boolean>;
+  /** Asks for a backup file; the path of the app's copy of it, or null when cancelled. */
+  pick(): Promise<string | null>;
+  /** The libraries replaced by a restore, newest first. */
+  kept(): Promise<KeptBackup[]>;
+  /**
+   * Puts the backup at `path` in place of the library, which is kept as `keepAs`. The core
+   * must be released first, and the page reloaded after.
+   */
+  replaceLibrary(path: string, keepAs: string): Promise<void>;
+}
+
 /** What the app runs on: the Windows app, the Android app, or a browser with the bridge. */
 export interface AppPlatform {
   driver: SqlDriver;
@@ -34,6 +57,7 @@ export interface AppPlatform {
   /** Saves a file where the reader chooses; false when the reader cancels. */
   saveFile?: (file: Blob, fileName: string) => Promise<boolean>;
   updates?: AppUpdates;
+  backups?: BackupShell;
   android?: AndroidShell;
   /** Runs once the core is open (Android: background fetching watches the queue). */
   onCoreReady?: (core: Core) => void;
@@ -63,6 +87,7 @@ async function windowsPlatform(): Promise<AppPlatform> {
     openSiteWindow: tauri.openSiteWindow,
     notify: tauri.notify,
     saveFile: tauri.saveFile,
+    backups: tauri.backups,
     updates: {
       version: tauri.appVersion,
       checkForUpdate: tauri.checkForUpdate,
@@ -81,6 +106,7 @@ async function androidPlatform(): Promise<AppPlatform> {
     openSiteWindow: capacitor.openSiteWindow,
     notify: capacitor.notify,
     saveFile: capacitor.saveFile,
+    backups: capacitor.backups,
     updates: {
       version: capacitor.appVersion,
       checkForUpdate: capacitor.checkForUpdate,

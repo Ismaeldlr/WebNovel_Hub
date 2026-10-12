@@ -3,6 +3,11 @@ fn main() {
     let commands = &[
         "db_run",
         "db_exec",
+        "temp_backup_path",
+        "save_backup",
+        "pick_backup",
+        "kept_backups",
+        "restore_library",
         "render",
         "render_result",
         "open_site_window",

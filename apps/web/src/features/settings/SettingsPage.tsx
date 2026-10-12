@@ -15,6 +15,7 @@ import {
 import { SectionHeading } from './SectionHeading';
 import styles from './SettingsPage.module.css';
 import { AppSection, BackgroundSection, NotifyChoice } from './AppSettings';
+import { BackupSection } from './BackupSection';
 import { WtrLabSection } from './WtrLabSection';
 
 /**
@@ -108,6 +109,7 @@ function SettingsSections({ preferences: saved }: { preferences: ReaderPreferenc
       {appKind !== 'browser' && (
         <>
           <BackgroundSection kind={appKind} preferences={preferences} onChange={update} />
+          <BackupSection kind={appKind} />
           <AppSection kind={appKind} />
         </>
       )}
