@@ -83,8 +83,8 @@ export function WtrLabSection({
   return (
     <Card as="section" aria-labelledby={WTR_LAB_SECTION} className={styles.section}>
       <SectionHeading id={WTR_LAB_SECTION} title="WTR Lab">
-        Guests get WTR Lab&apos;s AI translation for a novel&apos;s first 10 chapters only. Sign in
-        here so the app can fetch the rest.
+        Guests get the AI translation of a novel&apos;s first 10 chapters only. Sign in for the
+        rest.
       </SectionHeading>
 
       {appKind === 'browser' ? (

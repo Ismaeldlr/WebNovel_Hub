@@ -2,16 +2,17 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { fakeApi } from '../../test/fakeApi';
 import { renderApp } from '../../test/renderApp';
+import { media } from '../../test/setup';
 
 const signedIn = () => fakeApi();
 const pageTheme = () => document.documentElement.dataset.theme;
 const SAVE_TIMEOUT = { timeout: 3000 };
 const section = (name: string) => screen.getByRole('region', { name });
 
-async function openSettings() {
-  const view = renderApp('/settings');
+async function openSettings(path = '/settings') {
+  const view = renderApp(path);
   expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
-  await screen.findByRole('region', { name: 'Appearance' });
+  await screen.findByRole('navigation', { name: 'Settings' });
   return view;
 }
 
@@ -20,9 +21,16 @@ describe('Settings page', () => {
     const api = signedIn();
     const { user } = await openSettings();
     expect(document.title).toBe('Settings · Webnovel Hub');
-    for (const name of ['Appearance', 'Downloads ahead', 'New chapters']) {
-      expect(section(name)).toBeVisible();
-    }
+    // The groups beside the open one: Appearance first.
+    const groups = within(screen.getByRole('navigation', { name: 'Settings' }));
+    expect(groups.getByRole('link', { name: /^Appearance/ })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(groups.getByRole('link', { name: /^Downloads & updates/ })).toHaveAttribute(
+      'href',
+      '/settings/downloads',
+    );
     // One theme for every page: no second theme setting.
     expect(screen.getAllByRole('group', { name: 'Theme' })).toHaveLength(1);
 
@@ -62,7 +70,8 @@ describe('Settings page', () => {
 
   it('sets how many chapters are downloaded ahead (0 to 10)', async () => {
     const api = signedIn();
-    const { user } = await openSettings();
+    const { user } = await openSettings('/settings/downloads');
+    expect(section('New chapters')).toBeVisible();
     const select = within(section('Downloads ahead')).getByRole('combobox', {
       name: 'Chapters to download ahead',
     });
@@ -89,6 +98,26 @@ describe('Settings page', () => {
     // The picker in Settings shows the same theme: it is one setting.
     expect(within(section('Appearance')).getByRole('radio', { name: 'Black' })).toBeChecked();
     await waitFor(() => expect(api.preferenceSaves).toEqual([{ theme: 'black' }]), SAVE_TIMEOUT);
+  });
+
+  it('lists the groups with their values on a phone, each opening its own page', async () => {
+    media.matches = true; // a phone
+    signedIn();
+    const { user } = renderApp('/settings');
+    const groups = within(await screen.findByRole('navigation', { name: 'Settings' }));
+    expect(groups.getByRole('link', { name: /^Appearance/ })).toHaveTextContent(
+      'Match device · Serif · 16 px',
+    );
+    expect(groups.getByRole('link', { name: /^Downloads & updates/ })).toHaveTextContent(
+      '3 chapters ahead',
+    );
+    expect(screen.queryByRole('region', { name: 'Appearance' })).toBeNull();
+
+    await user.click(groups.getByRole('link', { name: /^Downloads & updates/ }));
+    expect(await screen.findByRole('region', { name: 'Downloads ahead' })).toBeVisible();
+    expect(screen.queryByRole('navigation', { name: 'Settings' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(await screen.findByRole('navigation', { name: 'Settings' })).toBeVisible();
   });
 
   it('says so when the settings do not load', async () => {

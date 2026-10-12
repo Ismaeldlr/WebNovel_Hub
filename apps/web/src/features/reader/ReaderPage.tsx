@@ -398,7 +398,18 @@ function ReaderFrame({
  * A stored chapter's text with the novel's terms applied, once they are known (so the
  * names don't change under the reader), and the "Add term" button for selections in it.
  */
-function ReadyText({ novel, text }: { novel: ReaderNovel; text: string }) {
+function ReadyText({
+  novel,
+  text,
+  title,
+  number,
+}: {
+  novel: ReaderNovel;
+  text: string;
+  /** The chapter's title and number, which the text's first lines may repeat. */
+  title: string;
+  number: number;
+}) {
   const terms = useNovelTerms(novel.id);
   const textRef = useRef<HTMLDivElement>(null);
   if (terms.isPending) {
@@ -411,7 +422,7 @@ function ReadyText({ novel, text }: { novel: ReaderNovel; text: string }) {
   const list = terms.data ?? [];
   return (
     <>
-      <ChapterText ref={textRef} text={text} terms={list} />
+      <ChapterText ref={textRef} text={text} terms={list} title={title} number={number} />
       <TermSelection containerRef={textRef} novel={novel} terms={list} />
     </>
   );
@@ -437,7 +448,14 @@ function ChapterBody({ novelId, chapter, data, refreshing }: BodyProps) {
   }
   switch (data.status) {
     case 'ready':
-      return <ReadyText novel={data.novel} text={data.content} />;
+      return (
+        <ReadyText
+          novel={data.novel}
+          text={data.content}
+          title={data.chapter.title}
+          number={chapter}
+        />
+      );
     case 'fetching':
       return <Fetching chapter={data} />;
     case 'failed':

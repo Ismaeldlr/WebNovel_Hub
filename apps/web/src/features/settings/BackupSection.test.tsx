@@ -51,7 +51,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 async function openBackup() {
-  const view = renderApp('/settings');
+  const view = renderApp('/settings/backup');
   return { ...view, section: await screen.findByRole('region', { name: 'Backup' }) };
 }
 

@@ -64,7 +64,7 @@ const PAGES: { path: string; Page: ComponentType }[] = [
   { path: 'exports', Page: ExportsPage },
   { path: 'profile', Page: ProfilePage },
   { path: 'profile/terms', Page: TermsPage },
-  { path: 'settings', Page: SettingsPage },
+  { path: 'settings/:group?', Page: SettingsPage },
 ];
 
 export function App() {
