@@ -1,5 +1,6 @@
 import type { ReaderNavigation } from '@webnovel-hub/shared';
 import { ChevronLeft, ChevronRight, List } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Button, ButtonLink } from '../../components/ui';
 import { readerPath } from '../../lib/reading';
 import styles from './ReaderPage.module.css';
@@ -14,6 +15,10 @@ interface ChapterNavProps {
   onChapters: () => void;
   /** `bar`: around the chapter. `toolbar`: the phone's bottom bar, smaller. */
   variant?: 'bar' | 'toolbar';
+  /** Toolbar: where the chapter is, shown on the Chapters button ("3 / 40"). */
+  position?: { chapter: number; total: number } | false;
+  /** Toolbar: more controls, before Next (the reading options). */
+  children?: ReactNode;
 }
 
 /**
@@ -26,6 +31,8 @@ export function ChapterNav({
   navigation,
   onChapters,
   variant = 'bar',
+  position,
+  children,
 }: ChapterNavProps) {
   const previous = navigation?.previous ?? null;
   const next = navigation?.next ?? null;
@@ -53,9 +60,22 @@ export function ChapterNav({
           Previous
         </Button>
       )}
-      <Button size={size} variant="ghost" icon={<List aria-hidden="true" />} onClick={onChapters}>
-        Chapters
+      <Button
+        size={size}
+        variant="ghost"
+        icon={<List aria-hidden="true" />}
+        onClick={onChapters}
+        aria-label={
+          position
+            ? `Chapters (chapter ${position.chapter.toLocaleString()} of ${position.total.toLocaleString()})`
+            : undefined
+        }
+      >
+        {position
+          ? `${position.chapter.toLocaleString()} / ${position.total.toLocaleString()}`
+          : 'Chapters'}
       </Button>
+      {children}
       {next ? (
         <ButtonLink
           to={readerPath(novelId, next.number)}

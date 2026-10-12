@@ -1,6 +1,13 @@
 import type { SourceSite } from '@webnovel-hub/shared';
-import { ExternalLink } from 'lucide-react';
+import { ChevronDown, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '../../components/ui';
+import { COMPACT_QUERY } from '../../lib/breakpoints';
+import { useMediaQuery } from '../../lib/hooks';
 import styles from './AddNovelsPage.module.css';
+
+/** Phones: how many sites show before "Show all". */
+const PHONE_SITES = 5;
 
 type ListedSite = SourceSite & { homeUrl: string };
 
@@ -13,21 +20,44 @@ function siteAddress(homeUrl: string): string {
   }
 }
 
+/** The sites as links; on phones the first few, then a button for the rest. */
 function SiteList({ sites }: { sites: ListedSite[] }) {
+  const phone = useMediaQuery(COMPACT_QUERY);
+  const [all, setAll] = useState(false);
+  const folded = phone && !all && sites.length > PHONE_SITES + 1;
+  const shown = folded ? sites.slice(0, PHONE_SITES) : sites;
   return (
-    <ul className={styles.siteList}>
-      {sites.map((site) => (
-        <li key={site.key}>
-          <a className={styles.site} href={site.homeUrl} target="_blank" rel="noopener noreferrer">
-            <span className={styles.siteText}>
-              <span className={styles.siteName}>{site.name}</span>
-              <span className={styles.siteAddress}>{siteAddress(site.homeUrl)}</span>
-            </span>
-            <ExternalLink className={styles.siteIcon} aria-hidden="true" />
-          </a>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className={styles.siteList}>
+        {shown.map((site) => (
+          <li key={site.key}>
+            <a
+              className={styles.site}
+              href={site.homeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span className={styles.siteText}>
+                <span className={styles.siteName}>{site.name}</span>
+                <span className={styles.siteAddress}>{siteAddress(site.homeUrl)}</span>
+              </span>
+              <ExternalLink className={styles.siteIcon} aria-hidden="true" />
+            </a>
+          </li>
+        ))}
+      </ul>
+      {folded && (
+        <Button
+          variant="ghost"
+          size="sm"
+          iconEnd={<ChevronDown aria-hidden="true" />}
+          className={styles.allSites}
+          onClick={() => setAll(true)}
+        >
+          Show all {sites.length} sites
+        </Button>
+      )}
+    </>
   );
 }
 

@@ -139,12 +139,27 @@ describe('reading options in the reader', () => {
   it('offers the phone text size on a phone, and a toolbar at the bottom', async () => {
     media.matches = true; // every query matches: a phone, in dark mode
     const api = signedIn();
-    const id = addNovel(api, { chapters: 1, fetched: [1] });
+    const id = addNovel(api, { chapters: 1, fetched: [1], library: {} });
     const { user } = renderApp(`/reader/${id}/1`);
     expect(await screen.findByText('The opening of chapter 1.')).toBeVisible();
-    // Previous, chapters and next move to the toolbar; the one above the text goes.
-    expect(screen.getByRole('navigation', { name: 'Chapter navigation, toolbar' })).toBeVisible();
+    // Previous, chapters and next move to the toolbar, with the reading options; the bars
+    // above and under the text go.
+    const toolbar = screen.getByRole('navigation', { name: 'Chapter navigation, toolbar' });
+    expect(
+      within(toolbar).getByRole('button', { name: 'Chapters (chapter 1 of 1)' }),
+    ).toHaveTextContent('1 / 1');
+    expect(within(toolbar).getByRole('button', { name: 'Reading options' })).toBeVisible();
     expect(screen.queryByRole('navigation', { name: 'Chapter navigation' })).toBeNull();
+    expect(
+      screen.queryByRole('navigation', { name: 'Chapter navigation, end of chapter' }),
+    ).toBeNull();
+    // The status is in the ⋮ menu, with the favourite, the novel's page and the terms.
+    await user.click(screen.getByRole('button', { name: 'More' }));
+    const menu = within(screen.getByRole('menu'));
+    expect(menu.getByRole('menuitemradio', { name: 'Reading' })).toBeChecked();
+    expect(menu.getByRole('menuitem', { name: 'Add to favorites' })).toBeVisible();
+    expect(menu.getByRole('menuitem', { name: 'Novel page' })).toBeVisible();
+    await user.keyboard('{Escape}');
 
     const panel = await openOptions(user);
     expect(within(panel).queryByRole('slider', { name: 'Text size on larger screens' })).toBeNull();

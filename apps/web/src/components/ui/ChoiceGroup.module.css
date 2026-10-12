@@ -108,3 +108,64 @@
   right: var(--space-2);
   transform: translateY(-50%);
 }
+
+@media (max-width: 599px) {
+  /* Swatches: the faces in one row, round; the chosen one gets a ring. */
+  .choices[data-phone='swatches'] {
+    grid-template-columns: none;
+    grid-auto-columns: auto;
+    grid-auto-flow: column;
+    gap: var(--space-1);
+    justify-content: space-between;
+    max-width: none;
+  }
+
+  .choices[data-phone='swatches'] .label {
+    white-space: nowrap;
+  }
+
+  .choices[data-phone='swatches'] .choice {
+    gap: var(--space-1);
+    padding: var(--space-1) 0;
+    border: 0;
+    background: none;
+    color: var(--ink-soft);
+    font-size: var(--text-xs);
+  }
+
+  .choices[data-phone='swatches'] .choice:has(:checked) {
+    box-shadow: none;
+    color: var(--ink);
+  }
+
+  .choices[data-phone='swatches'] .choice:has(:checked) > input + * {
+    box-shadow:
+      0 0 0 2px var(--paper-raised),
+      0 0 0 4px var(--accent);
+  }
+
+  .choices[data-phone='swatches'] .check {
+    display: none;
+  }
+
+  /* Chips: names in a row that scrolls to the screen's edges. */
+  .choices[data-phone='chips'] {
+    display: flex;
+    gap: var(--space-2);
+    margin: 0 calc(-1 * var(--space-4));
+    padding: 2px var(--space-4);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .choices[data-phone='chips'] .choice {
+    flex: none;
+    justify-content: center;
+    padding: var(--space-2) var(--space-4);
+    border-radius: 999px;
+  }
+
+  .choices[data-phone='chips'] .check {
+    display: none;
+  }
+}

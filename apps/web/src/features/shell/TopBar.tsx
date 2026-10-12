@@ -1,5 +1,6 @@
 import type { ThemePreference } from '@webnovel-hub/shared';
 import {
+  ArrowLeft,
   Coffee,
   type LucideIcon,
   Menu as MenuIcon,
@@ -10,13 +11,13 @@ import {
   Sun,
 } from 'lucide-react';
 import { type Ref, useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { HOME_PATH } from '../../app/navigation';
 import { useTheme } from '../../app/theme';
 import { BrandMark } from '../../components/BrandMark';
 import { IconButton, Menu, MenuHeader, MenuItem } from '../../components/ui';
 import { COMPACT_QUERY } from '../../lib/breakpoints';
-import { useMediaQuery } from '../../lib/hooks';
+import { type PageBar, useMediaQuery } from '../../lib/hooks';
 import { THEME_OPTIONS } from '../preferences/readerStyle';
 import { useUpdatePreferences } from '../preferences/usePreferences';
 import { GlobalSearch } from './GlobalSearch';
@@ -31,6 +32,10 @@ interface TopBarProps {
   menuButtonRef: Ref<HTMLButtonElement>;
   /** The page's title, shown in the bar on phones instead of the app's name. */
   pageTitle: string;
+  /** What the page asks of the bar on phones. */
+  pageBar: PageBar;
+  /** Phones: where pages put their own buttons (BarActions). */
+  actionsSlotRef: Ref<HTMLSpanElement>;
 }
 
 export function TopBar({
@@ -40,6 +45,8 @@ export function TopBar({
   onOpenDrawer,
   menuButtonRef,
   pageTitle,
+  pageBar,
+  actionsSlotRef,
 }: TopBarProps) {
   // Phones have no room for the search box: a button opens it over the top bar.
   const compact = useMediaQuery(COMPACT_QUERY);
@@ -50,18 +57,27 @@ export function TopBar({
     searchButtonRef.current?.focus();
   };
 
+  const back = compact && pageBar.back;
   return (
-    <header className={styles.topbar}>
-      {drawer && (
-        <IconButton
-          ref={menuButtonRef}
-          label="Open menu"
-          aria-expanded={drawerOpen}
-          aria-controls={sidebarId}
-          onClick={onOpenDrawer}
-        >
-          <MenuIcon aria-hidden="true" />
-        </IconButton>
+    <header
+      className={styles.topbar}
+      data-topbar
+      data-clear={(compact && pageBar.clear) || undefined}
+    >
+      {back ? (
+        <BackButton fallback={typeof back === 'string' ? back : HOME_PATH} />
+      ) : (
+        drawer && (
+          <IconButton
+            ref={menuButtonRef}
+            label="Open menu"
+            aria-expanded={drawerOpen}
+            aria-controls={sidebarId}
+            onClick={onOpenDrawer}
+          >
+            <MenuIcon aria-hidden="true" />
+          </IconButton>
+        )
       )}
       {/* Phones: the page's title (its h1 is for screen readers there). Tablets: the name. */}
       {compact ? (
@@ -90,9 +106,30 @@ export function TopBar({
             <Search aria-hidden="true" />
           </IconButton>
         )}
-        <ThemeMenu />
+        {/* Phones: the page's own buttons; the theme is in Settings and the reader there. */}
+        {compact ? <span ref={actionsSlotRef} className={styles.pageActions} /> : <ThemeMenu />}
       </div>
     </header>
+  );
+}
+
+/**
+ * Back to the page the reader came from, or to `fallback` when the page was opened
+ * directly (nothing before it in this visit).
+ */
+function BackButton({ fallback }: { fallback: string }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  return (
+    <IconButton
+      label="Back"
+      onClick={() => {
+        if (location.key === 'default') void navigate(fallback);
+        else void navigate(-1);
+      }}
+    >
+      <ArrowLeft aria-hidden="true" />
+    </IconButton>
   );
 }
 

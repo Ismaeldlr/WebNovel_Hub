@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Button, Card, ChoiceGroup, ChoiceLabel, Notice } from '../../components/ui';
 import { type AppKind, getPlatform } from '../../platform';
 import { SectionHeading } from './SectionHeading';
+import { useAppVersion } from './settingsGroups';
 import styles from './SettingsPage.module.css';
 
 type Kind = Exclude<AppKind, 'browser'>;
@@ -48,7 +49,7 @@ export function Choices<T extends string>({
 
 const BACKGROUND = {
   windows: {
-    lead: "Imports, chapters and update checks run while the app is open. They can go on after you close its window too: the app's icon stays in the notification area, and Quit there stops it.",
+    lead: 'Fetching can go on after you close the window; Quit in the notification area stops it.',
     legend: 'When I close the window',
     options: [
       { value: 'quit', label: 'Quit the app', detail: 'Fetching stops until you open it again.' },
@@ -60,7 +61,7 @@ const BACKGROUND = {
     ],
   },
   android: {
-    lead: 'Imports, chapters and update checks run while the app is open. They can go on when you switch to another app or turn the screen off: a notification shows while chapters download, with a button to stop them.',
+    lead: 'Downloads can go on after you leave the app, with a notification while they run.',
     legend: 'When I leave the app',
     options: [
       {
@@ -197,11 +198,7 @@ export function NotifyChoice({
 
 /** The app's version, and its updates from the project's releases. */
 export function AppSection({ kind }: { kind: Kind }) {
-  const version = useQuery({
-    queryKey: ['app-version'],
-    queryFn: async () => (await getPlatform()).updates?.version() ?? null,
-    staleTime: Infinity,
-  });
+  const version = useAppVersion();
   const check = useMutation({
     mutationFn: async () => (await getPlatform()).updates?.checkForUpdate() ?? null,
   });
@@ -212,10 +209,10 @@ export function AppSection({ kind }: { kind: Kind }) {
 
   return (
     <Card as="section" aria-labelledby="settings-app" className={styles.section}>
-      <SectionHeading id="settings-app" title="App">
+      <SectionHeading id="settings-app" title="Version">
         {kind === 'android'
-          ? 'New versions bring fixes for sites that changed and new features. A new version downloads in your browser; installing it over this one keeps your library.'
-          : 'New versions bring fixes for sites that changed and new features. Your library stays as it is when you update.'}
+          ? 'New versions download in your browser; installing one keeps your library.'
+          : 'Updating keeps your library as it is.'}
       </SectionHeading>
       {version.data && <p className={styles.version}>Webnovel Hub {version.data}</p>}
       <div className={styles.actions}>

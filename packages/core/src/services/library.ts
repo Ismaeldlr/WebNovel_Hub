@@ -1,4 +1,10 @@
-import type { LibraryItem, LibraryPage, LibraryStats, LibraryStatus } from '@webnovel-hub/shared';
+import type {
+  LibraryItem,
+  LibraryPage,
+  LibraryStats,
+  LibraryStatus,
+  LibraryTag,
+} from '@webnovel-hub/shared';
 import type { Database } from '../db/database.js';
 import { AppError } from '../errors.js';
 import {
@@ -6,6 +12,7 @@ import {
   findLibraryItem,
   libraryStats,
   listLibrary,
+  listLibraryTags,
   newChaptersCount,
   updateLibraryEntry,
 } from '../repositories/library.js';
@@ -23,6 +30,8 @@ export interface LibraryService {
   setStatus(novelId: string, status: LibraryStatus): Promise<LibraryItem>;
   setFavorite(novelId: string, isFavorite: boolean): Promise<LibraryItem>;
   stats(): Promise<LibraryStats>;
+  /** Every tag in the library, for the tag filter. */
+  tags(): Promise<LibraryTag[]>;
   newChaptersCount(): Promise<number>;
 }
 
@@ -60,6 +69,7 @@ export function createLibraryService(db: Database): LibraryService {
     },
 
     stats: () => libraryStats(db),
+    tags: () => listLibraryTags(db),
     newChaptersCount: () => newChaptersCount(db),
   };
 }

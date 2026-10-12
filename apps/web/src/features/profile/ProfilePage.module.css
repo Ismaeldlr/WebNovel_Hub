@@ -194,8 +194,22 @@
   font-weight: 600;
 }
 
+/* Phones: the weeks share the screen's width, so the days are as big as it allows. */
 @media (max-width: 599px) {
+  .heatmapFigure {
+    align-items: stretch;
+  }
+
   .heatmap {
-    --cell: 0.7rem;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(7, auto);
+    overflow: visible;
+  }
+
+  .heatmap .cell {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    border-radius: 3px;
   }
 }

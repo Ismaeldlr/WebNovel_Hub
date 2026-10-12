@@ -9,6 +9,11 @@ interface ChoiceGroupProps<T extends string, O extends { value: T; label: string
   onChange: (value: T) => void;
   /** `tiles`: small squares in a row (themes, widths). `list`: wider rows (fonts). */
   layout: 'tiles' | 'list';
+  /**
+   * How the choices sit on phones: `swatches`, round faces in one row (themes); `chips`,
+   * a row of names that scrolls sideways (fonts). Otherwise as `layout`.
+   */
+  phone?: 'swatches' | 'chips';
   /** The option's face; `detailId` names an element that describes it (optional). */
   render: (option: O, detailId: string) => ReactNode;
 }
@@ -23,13 +28,14 @@ export function ChoiceGroup<T extends string, O extends { value: T; label: strin
   options,
   onChange,
   layout,
+  phone,
   render,
 }: ChoiceGroupProps<T, O>) {
   const name = useId();
   return (
     <fieldset className={styles.group}>
       <legend className={styles.legend}>{legend}</legend>
-      <div className={styles.choices} data-layout={layout}>
+      <div className={styles.choices} data-layout={layout} data-phone={phone}>
         {options.map((option) => {
           const detailId = `${name}-${option.value}-detail`;
           return (

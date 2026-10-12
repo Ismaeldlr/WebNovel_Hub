@@ -1,9 +1,11 @@
 import type { ReaderPreferences } from '@webnovel-hub/shared';
 import { ALargeSmall, Settings, X } from 'lucide-react';
 import { type FocusEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
 import { IconButton } from '../../components/ui';
-import { useDismiss } from '../../lib/hooks';
+import { COMPACT_QUERY } from '../../lib/breakpoints';
+import { useDismiss, useMediaQuery } from '../../lib/hooks';
 import { ReaderOptions } from '../preferences/ReaderOptions';
 import { useUpdatePreferences } from '../preferences/usePreferences';
 import styles from './ReaderOptionsPanel.module.css';
@@ -27,13 +29,15 @@ export function ReaderOptionsPanel({
   const panelRef = useRef<HTMLDivElement>(null);
   const id = useId();
   const update = useUpdatePreferences();
+  // Phones: the sheet goes to the end of the page, over the toolbar its button sits in.
+  const sheet = useMediaQuery(COMPACT_QUERY);
 
   const close = useCallback((returnFocus = true) => {
     setOpen(false);
     if (returnFocus) buttonRef.current?.focus();
   }, []);
 
-  useDismiss(open, [rootRef], (reason) => close(reason === 'escape'));
+  useDismiss(open, [rootRef, panelRef], (reason) => close(reason === 'escape'));
 
   useEffect(() => {
     if (open) panelRef.current?.focus();
@@ -41,8 +45,37 @@ export function ReaderOptionsPanel({
 
   const onBlur = (event: FocusEvent<HTMLDivElement>) => {
     const next = event.relatedTarget;
-    if (open && next instanceof Node && !rootRef.current?.contains(next)) close(false);
+    const inside = rootRef.current?.contains(next) || panelRef.current?.contains(next);
+    if (open && next instanceof Node && !inside) close(false);
   };
+
+  const panel = preferences && (
+    <div
+      ref={panelRef}
+      id={`${id}-panel`}
+      role="dialog"
+      aria-labelledby={`${id}-title`}
+      tabIndex={-1}
+      className={styles.panel}
+      data-reader-options=""
+    >
+      <div className={styles.head}>
+        <h2 id={`${id}-title`} className={styles.title}>
+          Reading options
+        </h2>
+        <IconButton size="sm" label="Close reading options" onClick={() => close()}>
+          <X aria-hidden="true" />
+        </IconButton>
+      </div>
+      <ReaderOptions preferences={preferences} onChange={update} />
+      <p className={styles.more}>
+        <Settings aria-hidden="true" />
+        <span>
+          Downloads ahead and more are in <Link to="/settings">Settings</Link>.
+        </span>
+      </p>
+    </div>
+  );
 
   return (
     <div ref={rootRef} className={styles.root} onBlur={onBlur}>
@@ -56,33 +89,7 @@ export function ReaderOptionsPanel({
       >
         <ALargeSmall aria-hidden="true" />
       </IconButton>
-      {open && preferences && (
-        <div
-          ref={panelRef}
-          id={`${id}-panel`}
-          role="dialog"
-          aria-labelledby={`${id}-title`}
-          tabIndex={-1}
-          className={styles.panel}
-          data-reader-options=""
-        >
-          <div className={styles.head}>
-            <h2 id={`${id}-title`} className={styles.title}>
-              Reading options
-            </h2>
-            <IconButton size="sm" label="Close reading options" onClick={() => close()}>
-              <X aria-hidden="true" />
-            </IconButton>
-          </div>
-          <ReaderOptions preferences={preferences} onChange={update} />
-          <p className={styles.more}>
-            <Settings aria-hidden="true" />
-            <span>
-              Downloads ahead and more are in <Link to="/settings">Settings</Link>.
-            </span>
-          </p>
-        </div>
-      )}
+      {open && preferences && (sheet ? createPortal(panel, document.body) : panel)}
     </div>
   );
 }

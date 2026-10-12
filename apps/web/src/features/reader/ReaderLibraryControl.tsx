@@ -1,21 +1,83 @@
 import type { LibraryState, ReaderNovel } from '@webnovel-hub/shared';
-import { ChevronDown } from 'lucide-react';
-import { Menu, MenuHeader, MenuItem } from '../../components/ui';
+import { BookOpen, ChevronDown, EllipsisVertical, Replace, Star } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { IconButton, Menu, MenuHeader, MenuItem, MenuSeparator } from '../../components/ui';
 import { STATUS_LABELS, STATUS_OPTIONS } from '../../lib/reading';
-import { useSetStatus } from '../library/libraryActions';
+import { useSetFavorite, useSetStatus } from '../library/libraryActions';
 import styles from './ReaderPage.module.css';
 
 interface Props {
   novel: ReaderNovel;
   library: LibraryState | null;
+  /**
+   * Phones: a ⋮ button whose menu also holds the favourite, the novel's page and the
+   * terms, so the top bar keeps to the novel and chapter.
+   */
+  compact?: boolean;
 }
 
-/** The status panel inside the reader. */
-export function ReaderLibraryControl({ novel, library }: Props) {
+/** The status panel inside the reader (on phones, the reader's ⋮ menu). */
+export function ReaderLibraryControl({ novel, library, compact = false }: Props) {
   const setStatus = useSetStatus();
-  if (!library) return null;
+  const setFavorite = useSetFavorite();
+  const navigate = useNavigate();
+  if (!library && !compact) return null;
 
-  const label = STATUS_LABELS[library.status];
+  const statusItems = library && (
+    <>
+      <MenuHeader>Library status</MenuHeader>
+      {STATUS_OPTIONS.map(({ value, label: optionLabel }) => (
+        <MenuItem
+          key={value}
+          checked={library.status === value}
+          onSelect={() => setStatus.mutate({ novelId: novel.id, status: value })}
+        >
+          {optionLabel}
+        </MenuItem>
+      ))}
+    </>
+  );
+
+  if (compact) {
+    return (
+      <Menu
+        trigger={(props) => (
+          <IconButton {...props} label="More">
+            <EllipsisVertical aria-hidden="true" />
+          </IconButton>
+        )}
+      >
+        {statusItems}
+        {library && (
+          <>
+            <MenuSeparator />
+            <MenuItem
+              icon={<Star aria-hidden="true" fill={library.isFavorite ? 'currentColor' : 'none'} />}
+              onSelect={() =>
+                setFavorite.mutate({ novelId: novel.id, isFavorite: !library.isFavorite })
+              }
+            >
+              {library.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            </MenuItem>
+          </>
+        )}
+        <MenuItem
+          icon={<BookOpen aria-hidden="true" />}
+          onSelect={() => void navigate(`/novels/${novel.id}`)}
+        >
+          Novel page
+        </MenuItem>
+        <MenuItem
+          icon={<Replace aria-hidden="true" />}
+          onSelect={() => void navigate('/profile/terms')}
+        >
+          Terms
+        </MenuItem>
+      </Menu>
+    );
+  }
+
+  const label = STATUS_LABELS[library!.status];
   return (
     <Menu
       trigger={(props) => (
@@ -33,16 +95,7 @@ export function ReaderLibraryControl({ novel, library }: Props) {
         </button>
       )}
     >
-      <MenuHeader>Library status</MenuHeader>
-      {STATUS_OPTIONS.map(({ value, label: optionLabel }) => (
-        <MenuItem
-          key={value}
-          checked={library.status === value}
-          onSelect={() => setStatus.mutate({ novelId: novel.id, status: value })}
-        >
-          {optionLabel}
-        </MenuItem>
-      ))}
+      {statusItems}
     </Menu>
   );
 }

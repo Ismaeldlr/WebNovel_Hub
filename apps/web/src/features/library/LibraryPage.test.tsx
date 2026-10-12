@@ -244,6 +244,32 @@ describe('Library filters, sort and search', () => {
     await waitFor(() => expect(titles()).toEqual(['Lord of Mysteries']));
   });
 
+  it('filters by tag, from the filter bar or a novel’s tag', async () => {
+    const api = signedIn();
+    addNovel(api, { title: 'Alpha', tags: ['Action', 'Magic'], library: {} });
+    addNovel(api, { title: 'Beta', tags: ['action'], library: {} });
+    addNovel(api, { title: 'Gamma', tags: ['Romance'], library: {} });
+    const { user } = renderApp('/library?sort=title');
+    await waitFor(() => expect(titles()).toEqual(['Alpha', 'Beta', 'Gamma']));
+
+    // One choice per tag whatever its case, with how many novels have it.
+    const tagSelect = await within(filterBar()).findByRole('combobox', { name: 'Tag' });
+    expect(
+      within(tagSelect)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['All tags', 'Action (2)', 'Magic (1)', 'Romance (1)']);
+    await user.selectOptions(control('Tag'), 'Action (2)');
+    await waitFor(() => expect(titles()).toEqual(['Alpha', 'Beta']));
+    expect(location()).toBe('/library?tag=Action&sort=title');
+
+    await user.click(screen.getByRole('link', { name: 'Alpha' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Alpha' })).toBeVisible();
+    await user.click(screen.getByRole('link', { name: 'Magic: show your novels with this tag' }));
+    await waitFor(() => expect(titles()).toEqual(['Alpha']));
+    expect(control('Tag')).toHaveDisplayValue('Magic (1)');
+  });
+
   it('searches titles and authors as you type', async () => {
     const api = shelf();
     const { user } = renderApp('/library');
@@ -320,21 +346,27 @@ describe('Library filters, sort and search', () => {
     await waitFor(() => expect(titles()).toHaveLength(4));
   });
 
-  it('folds the sort and filters behind a button on a phone', async () => {
+  it('puts the sort and filters in a sheet that the top bar opens on a phone', async () => {
     media.matches = true; // a phone
     shelf();
     const { user } = renderApp('/library');
     await waitFor(() => expect(titles()).toHaveLength(4));
-    expect(within(filterBar()).getByRole('searchbox')).toBeVisible();
+    // On the page: only the count.
+    expect(within(filterBar()).queryByRole('searchbox')).toBeNull();
     expect(within(filterBar()).queryByRole('combobox', { name: 'Sort by' })).toBeNull();
+    expect(within(filterBar()).getByRole('status')).toHaveTextContent('4 novels');
 
-    const button = within(filterBar()).getByRole('button', { name: 'Sort & filter' });
+    const bar = within(document.querySelector<HTMLElement>('[data-topbar]')!);
+    expect(bar.getByRole('link', { name: 'Add a novel' })).toHaveAttribute('href', '/add');
+    const button = bar.getByRole('button', { name: 'Sort & filter' });
     expect(button).toHaveAttribute('aria-expanded', 'false');
     await user.click(button);
     expect(button).toHaveAttribute('aria-expanded', 'true');
-    await user.selectOptions(control('Sort by'), 'Title A–Z');
+    const sheet = within(screen.getByRole('dialog', { name: 'Sort & filter' }));
+    await user.selectOptions(sheet.getByRole('combobox', { name: 'Sort by' }), 'Title A–Z');
     await waitFor(() => expect(location()).toBe('/library?sort=title'));
-    expect(within(filterBar()).getByRole('checkbox', { name: 'Favorites only' })).toBeVisible();
+    expect(sheet.getByRole('searchbox')).toBeVisible();
+    expect(sheet.getByRole('checkbox', { name: 'Favorites only' })).toBeVisible();
   });
 
   it('keeps the filters when coming back to My Library in the same session', async () => {

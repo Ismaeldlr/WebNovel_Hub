@@ -78,6 +78,14 @@
     transform-origin: bottom center;
     animation-name: rise;
   }
+
+  .panel {
+    gap: var(--space-3);
+  }
+
+  .title {
+    font-size: var(--text-lg);
+  }
 }
 
 @keyframes open {

@@ -1,6 +1,13 @@
 // UI primitives. None of them relies on colour alone to carry meaning.
 export { Badge, type BadgeTone } from './Badge';
-export { Button, ButtonLink, IconButton, type ButtonProps, type IconButtonProps } from './Button';
+export {
+  Button,
+  ButtonLink,
+  IconButton,
+  IconLink,
+  type ButtonProps,
+  type IconButtonProps,
+} from './Button';
 export { Card } from './Card';
 export { ChoiceGroup, ChoiceLabel } from './ChoiceGroup';
 export { ConfirmDialog } from './ConfirmDialog';

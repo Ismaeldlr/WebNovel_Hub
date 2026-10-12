@@ -53,6 +53,10 @@ export const NAV_ITEMS: NavItem[] = NAV_SECTIONS.flatMap((section) => section.it
 /** Where the app opens. */
 export const HOME_PATH = '/library';
 
+/** The library, showing only the novels with `tag`. */
+export const libraryTagPath = (tag: string) =>
+  `/library?${new URLSearchParams({ tag }).toString()}`;
+
 /** The library, searching for `text` (the global search's "See all results"). */
 export const librarySearchPath = (text: string) =>
   text ? `/library?${new URLSearchParams({ q: text }).toString()}` : '/library';

@@ -11,6 +11,8 @@ import type {
   LibraryQuery,
   LibraryStats,
   LibraryStatus,
+  LibraryTag,
+  LibraryTagsResponse,
   NewChaptersCount,
   NovelDetailsUpdate,
   NovelResponse,
@@ -107,6 +109,9 @@ export const libraryApi = {
   list: (params: LibraryQuery, signal?: AbortSignal) =>
     apiRequest<LibraryPage>(`/library${query({ ...params })}`, { signal }),
   stats: (signal?: AbortSignal) => apiRequest<LibraryStats>('/library/stats', { signal }),
+  /** Every tag of the novels in the library, A to Z. */
+  tags: async (signal?: AbortSignal): Promise<LibraryTag[]> =>
+    (await apiRequest<LibraryTagsResponse>('/library/tags', { signal })).tags,
   newChaptersCount: async (signal?: AbortSignal) =>
     (await apiRequest<NewChaptersCount>('/library/new-chapters-count', { signal })).count,
   remove: (novelId: string) => apiRequest<null>(`/library/${id(novelId)}`, { method: 'DELETE' }),

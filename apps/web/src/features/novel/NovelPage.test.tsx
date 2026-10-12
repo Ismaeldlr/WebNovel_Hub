@@ -4,6 +4,8 @@ import { addNovel, fakeApi } from '../../test/fakeApi';
 import { renderApp } from '../../test/renderApp';
 
 const signedIn = () => fakeApi();
+/** The value of one of the facts under the title, e.g. "Read". */
+const fact = (label: string) => screen.getByText(label, { selector: 'dt' }).nextElementSibling;
 describe('novel page', () => {
   it('shows the metadata and the library controls', async () => {
     const api = signedIn();
@@ -29,7 +31,8 @@ describe('novel page', () => {
       'aria-pressed',
       'false',
     );
-    expect(screen.getByText('Not started')).toBeVisible();
+    expect(fact('Read')).toHaveTextContent('0%');
+    expect(screen.getByText(/Checked for updates .* · Added /)).toBeVisible();
   });
 
   it('shows the progress, continues where the reader left off, and changes the status', async () => {
@@ -50,12 +53,13 @@ describe('novel page', () => {
       'href',
       `/reader/${id}/7`,
     );
-    expect(screen.getByText('Chapter 10 of 40')).toBeVisible();
-    expect(screen.getByRole('progressbar', { name: 'Reading progress' })).toHaveAttribute(
-      'aria-valuenow',
-      '10',
+    expect(fact('Chapters')).toHaveTextContent('40');
+    expect(fact('Read')).toHaveTextContent('25%');
+    expect(screen.getByRole('link', { name: '2 new chapters' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('?order=desc'),
     );
-    expect(screen.getByRole('link', { name: '2 new chapters' })).toBeVisible();
+    expect(screen.getByText(/^Last read/)).toBeVisible();
 
     await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'completed');
     await waitFor(() => expect(api.library.get(id)?.status).toBe('completed'));

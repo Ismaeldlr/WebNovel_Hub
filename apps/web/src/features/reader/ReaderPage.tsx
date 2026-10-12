@@ -4,6 +4,7 @@ import {
   type ReaderChapterResponse,
   type ReaderFetching,
   type ReaderNavigation,
+  type ReaderNovel,
   type ReaderPreferences,
 } from '@webnovel-hub/shared';
 import { useQuery } from '@tanstack/react-query';
@@ -26,6 +27,8 @@ import { plural, readingMinutes } from '../../lib/format';
 import { useMediaQuery, usePageTitle } from '../../lib/hooks';
 import { readerPath } from '../../lib/reading';
 import { readerStyle } from '../preferences/readerStyle';
+import { TermSelection } from '../terms/TermSelection';
+import { useNovelTerms } from '../terms/termActions';
 import { usePreferences } from '../preferences/usePreferences';
 import { ChapterNav } from './ChapterNav';
 import { ChaptersSheet } from './ChaptersSheet';
@@ -199,7 +202,9 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
         `Chapter ${chapter.toLocaleString()} of ${data.novel.totalChapters.toLocaleString()}`
       }
       preferences={preferences}
-      control={data && <ReaderLibraryControl novel={data.novel} library={data.library} />}
+      control={
+        data && <ReaderLibraryControl novel={data.novel} library={data.library} compact={phone} />
+      }
       barsHidden={bars.hidden}
       onShowBars={bars.show}
       progressRef={progressRef}
@@ -211,7 +216,15 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
             navigation={navigation}
             onChapters={openChapters}
             variant="toolbar"
-          />
+            position={
+              data && {
+                chapter,
+                total: data.novel.totalChapters,
+              }
+            }
+          >
+            <ReaderOptionsPanel preferences={preferences} />
+          </ChapterNav>
         )
       }
     >
@@ -232,14 +245,6 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
                 <span>
                   Chapter {chapter.toLocaleString()} of {data.novel.totalChapters.toLocaleString()}
                 </span>
-                {data.status === 'ready' && (
-                  <>
-                    <span aria-hidden="true"> · </span>
-                    <span>
-                      {plural(data.wordCount, 'word')} · {readingMinutes(data.wordCount)} min
-                    </span>
-                  </>
-                )}
               </>
             ) : (
               <span>Chapter {chapter.toLocaleString()}</span>
@@ -248,6 +253,11 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
           <h1 id="chapter-title" ref={headingRef} tabIndex={-1} className={styles.title}>
             {data?.chapter.title ?? `Chapter ${chapter}`}
           </h1>
+          {data?.status === 'ready' && (
+            <p className={styles.length}>
+              {plural(data.wordCount, 'word')} · {readingMinutes(data.wordCount)} min
+            </p>
+          )}
         </header>
 
         {!phone && (
@@ -281,12 +291,19 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
           </section>
         )}
 
-        <ChapterNav
-          label="Chapter navigation, end of chapter"
-          novelId={novelId}
-          navigation={navigation}
-          onChapters={openChapters}
-        />
+        {phone ? (
+          data?.status === 'ready' &&
+          data.navigation.next && (
+            <p className={styles.endMark}>End of chapter {chapter.toLocaleString()}</p>
+          )
+        ) : (
+          <ChapterNav
+            label="Chapter navigation, end of chapter"
+            novelId={novelId}
+            navigation={navigation}
+            onChapters={openChapters}
+          />
+        )}
       </article>
       {data && (
         <ChaptersSheet
@@ -316,7 +333,7 @@ interface FrameProps {
   onShowBars?: () => void;
   /** The progress bar's fill, while a chapter shows. */
   progressRef?: RefObject<HTMLSpanElement | null>;
-  /** The phone's bottom toolbar. */
+  /** The phone's bottom toolbar, which then holds the reading options. */
   toolbar?: ReactNode;
   children: ReactNode;
 }
@@ -361,7 +378,7 @@ function ReaderFrame({
           </Link>
           <div className={styles.barActions}>
             {control}
-            <ReaderOptionsPanel preferences={preferences} />
+            {!toolbar && <ReaderOptionsPanel preferences={preferences} />}
           </div>
         </div>
       </header>
@@ -374,6 +391,40 @@ function ReaderFrame({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * A stored chapter's text with the novel's terms applied, once they are known (so the
+ * names don't change under the reader), and the "Add term" button for selections in it.
+ */
+function ReadyText({
+  novel,
+  text,
+  title,
+  number,
+}: {
+  novel: ReaderNovel;
+  text: string;
+  /** The chapter's title and number, which the text's first lines may repeat. */
+  title: string;
+  number: number;
+}) {
+  const terms = useNovelTerms(novel.id);
+  const textRef = useRef<HTMLDivElement>(null);
+  if (terms.isPending) {
+    return (
+      <div className={styles.text}>
+        <Skeleton label="Loading the chapter" />
+      </div>
+    );
+  }
+  const list = terms.data ?? [];
+  return (
+    <>
+      <ChapterText ref={textRef} text={text} terms={list} title={title} number={number} />
+      <TermSelection containerRef={textRef} novel={novel} terms={list} />
+    </>
   );
 }
 
@@ -397,7 +448,14 @@ function ChapterBody({ novelId, chapter, data, refreshing }: BodyProps) {
   }
   switch (data.status) {
     case 'ready':
-      return <ChapterText text={data.content} />;
+      return (
+        <ReadyText
+          novel={data.novel}
+          text={data.content}
+          title={data.chapter.title}
+          number={chapter}
+        />
+      );
     case 'fetching':
       return <Fetching chapter={data} />;
     case 'failed':

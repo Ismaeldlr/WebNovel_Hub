@@ -1,22 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Library } from 'lucide-react';
 import { Navigate } from 'react-router';
-import { historyApi } from '../../api/history';
 import { HOME_PATH } from '../../app/navigation';
-import { queryKeys } from '../../app/queryClient';
 import { ButtonLink, EmptyState, ErrorState, LoadingState } from '../../components/ui';
 import { usePageTitle } from '../../lib/hooks';
 import { readerPath } from '../../lib/reading';
+import { lastReadQuery } from '../history/lastRead';
 
 /** Opens the chapter read last, in whichever novel; says so when nothing was read yet. */
 export function ContinueReadingPage() {
   usePageTitle('Continue Reading');
-  const last = useQuery({
-    queryKey: [...queryKeys.history, 'last-read'],
-    queryFn: async ({ signal }) =>
-      (await historyApi.chapters({ range: 'all', novelId: null }, null, signal)).items[0] ?? null,
-    staleTime: 0,
-  });
+  const last = useQuery(lastReadQuery);
 
   if (last.isPending) return <LoadingState label="Finding where you left off" />;
   if (last.isError) {

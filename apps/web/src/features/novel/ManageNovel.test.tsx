@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { addNovel, fakeApi } from '../../test/fakeApi';
+import { chooseMore } from '../../test/novelMenu';
 import { renderApp } from '../../test/renderApp';
 import { COVER_CHECKS } from './manageActions';
 
@@ -14,7 +15,7 @@ describe('Managing a novel', () => {
     const id = addNovel(api, { title: 'Old Title', library: {} });
     const { user } = renderApp(`/novels/${id}`);
 
-    await user.click(await screen.findByRole('button', { name: 'Edit details' }));
+    await chooseMore(user, 'Edit details');
     expect(dialog().getByRole('textbox', { name: 'Title' })).toHaveValue('Old Title');
     expect(dialog().getByRole('textbox', { name: 'Tags' })).toHaveValue('Fantasy, Adventure');
     expect(dialog().getByText(/Chapters and their text stay as the source has them/)).toBeVisible();
@@ -40,7 +41,7 @@ describe('Managing a novel', () => {
     const api = signedIn();
     const id = addNovel(api, { library: {} });
     const { user } = renderApp(`/novels/${id}`);
-    await screen.findByRole('button', { name: 'Change cover' });
+    await screen.findByRole('button', { name: 'More actions' });
     const input = screen.getByTestId('cover-input');
 
     await user.upload(input, new File([new Uint8Array(64)], 'front.png', { type: 'image/png' }));
@@ -60,7 +61,7 @@ describe('Managing a novel', () => {
     const id = addNovel(api, { title: 'Doomed', chapters: 12, library: {} });
     const { user } = renderApp(`/novels/${id}`);
 
-    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    await chooseMore(user, 'Delete');
     expect(dialog().getByText(/Its 12 chapters and their stored text/)).toBeVisible();
     await user.click(dialog().getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(location()).toBe('/library'));

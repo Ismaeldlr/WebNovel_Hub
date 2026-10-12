@@ -24,6 +24,7 @@ import { createNovelManagementService } from './services/novel-management.js';
 import { createPrefetcher } from './services/prefetch.js';
 import { createPreferencesService } from './services/preferences.js';
 import { createReaderService } from './services/reader.js';
+import { createTermService } from './services/terms.js';
 import { createUpdateService } from './services/updates.js';
 
 export interface CoreOptions {
@@ -126,6 +127,7 @@ export async function createCore(options: CoreOptions): Promise<Core> {
       updates: createUpdateService(db, { maxRetries }),
       management: createNovelManagementService(db),
       accounts: createAccountService(registry, fetcher),
+      terms: createTermService(db),
     }),
     logger,
   );

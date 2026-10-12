@@ -27,6 +27,10 @@ Object.defineProperty(window, 'matchMedia', {
 
 window.scrollTo = () => undefined;
 
+// jsdom has no layout: a selection is a box at the top left.
+const range: Partial<Pick<Range, 'getBoundingClientRect'>> = Range.prototype;
+range.getBoundingClientRect ??= () => new DOMRect();
+
 const dialog: Partial<Pick<HTMLDialogElement, 'showModal' | 'close'>> = HTMLDialogElement.prototype;
 if (!dialog.showModal) {
   dialog.showModal = function (this: HTMLDialogElement) {

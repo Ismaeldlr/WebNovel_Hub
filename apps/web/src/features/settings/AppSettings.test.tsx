@@ -33,9 +33,11 @@ vi.mock('../../platform', async (original) => ({
 
 const section = (name: string) => screen.getByRole('region', { name });
 
-async function openSettings() {
-  const view = renderApp('/settings');
-  await screen.findByRole('region', { name: 'Background fetching' });
+async function openSettings(group: 'downloads' | 'about' = 'downloads') {
+  const view = renderApp(`/settings/${group}`);
+  await screen.findByRole('region', {
+    name: group === 'about' ? 'Version' : 'Background fetching',
+  });
   return view;
 }
 
@@ -76,8 +78,8 @@ describe('Settings in the Windows app', () => {
   it('shows the version and installs a newer one', async () => {
     fakeApi();
     app.updates.checkForUpdate.mockResolvedValueOnce(null).mockResolvedValueOnce('0.2.0');
-    const { user } = await openSettings();
-    const about = section('App');
+    const { user } = await openSettings('about');
+    const about = section('Version');
     expect(await within(about).findByText('Webnovel Hub 0.1.0')).toBeVisible();
 
     await user.click(within(about).getByRole('button', { name: 'Check for updates' }));
@@ -147,8 +149,8 @@ describe('Settings in the Android app', () => {
   it('opens the download of a newer version', async () => {
     fakeApi();
     app.updates.checkForUpdate.mockResolvedValueOnce('0.2.0');
-    const { user } = await openSettings();
-    const about = section('App');
+    const { user } = await openSettings('about');
+    const about = section('Version');
 
     await user.click(within(about).getByRole('button', { name: 'Check for updates' }));
     await user.click(await within(about).findByRole('button', { name: 'Download version 0.2.0' }));

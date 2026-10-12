@@ -1,10 +1,22 @@
 import { NOVEL_DETAIL_LIMITS, type NovelDetail } from '@webnovel-hub/shared';
-import { ImageUp, PencilLine, Trash2 } from 'lucide-react';
+import { BookDown, Ellipsis, FileDown, ImageUp, PencilLine, Trash2 } from 'lucide-react';
 import { type FormEvent, useId, useRef, useState } from 'react';
-import { Button, ConfirmDialog, Dialog, TextArea, TextField, useToast } from '../../components/ui';
+import {
+  Button,
+  ConfirmDialog,
+  Dialog,
+  Menu,
+  MenuItem,
+  MenuSeparator,
+  TextArea,
+  TextField,
+  useToast,
+} from '../../components/ui';
 import { plural } from '../../lib/format';
+import { useExportEpub } from '../exports/useExportEpub';
 import { checkCoverFile, useDeleteNovel, useUpdateDetails, useUploadCover } from './manageActions';
 import styles from './NovelPage.module.css';
+import type { FullFetchState } from './useFullFetch';
 
 /** Tags as the reader types them: separated by commas. */
 const parseTags = (text: string) =>
@@ -13,30 +25,72 @@ const parseTags = (text: string) =>
     .map((tag) => tag.trim())
     .filter(Boolean);
 
-/** "Edit details" and "Change cover". Only the novel's own details: chapter text can't be edited. */
-export function ManageButtons({ novel }: { novel: NovelDetail }) {
+/**
+ * "More": the novel's less frequent actions in one menu (a sheet on phones): fetch all
+ * chapters, export, edit details, change cover and delete. Only the novel's own details
+ * can be edited, never chapter text.
+ */
+export function MoreActions({
+  novel,
+  fullFetch,
+  className,
+}: {
+  novel: NovelDetail;
+  fullFetch: FullFetchState;
+  className?: string;
+}) {
   const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const { storedChapters, totalChapters } = fullFetch;
   const cover = useUploadCover(novel.id);
+  const exportEpub = useExportEpub({ novel, storedChapters, totalChapters });
+  const destroy = useDeleteNovel(novel.id, novel.title);
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
+  // Hidden for EPUB imports, while a fetch waits or runs, and once every chapter is stored.
+  const canFetchAll = fullFetch.available && !fullFetch.active && storedChapters < totalChapters;
 
   return (
     <>
-      <Button
-        variant="ghost"
-        icon={<PencilLine aria-hidden="true" />}
-        onClick={() => setEditing(true)}
+      <Menu
+        trigger={(props) => (
+          <Button
+            {...props}
+            variant="ghost"
+            icon={<Ellipsis aria-hidden="true" />}
+            busy={cover.isPending || exportEpub.isPending}
+            aria-label="More actions"
+            className={className}
+          >
+            More
+          </Button>
+        )}
       >
-        Edit details
-      </Button>
-      <Button
-        variant="ghost"
-        icon={<ImageUp aria-hidden="true" />}
-        busy={cover.isPending}
-        onClick={() => inputRef.current?.click()}
-      >
-        Change cover
-      </Button>
+        {canFetchAll && (
+          <MenuItem icon={<BookDown aria-hidden="true" />} onSelect={fullFetch.start}>
+            Fetch all chapters
+          </MenuItem>
+        )}
+        {storedChapters > 0 && (
+          <MenuItem icon={<FileDown aria-hidden="true" />} onSelect={() => exportEpub.mutate()}>
+            Export EPUB
+          </MenuItem>
+        )}
+        <MenuItem icon={<PencilLine aria-hidden="true" />} onSelect={() => setEditing(true)}>
+          Edit details
+        </MenuItem>
+        <MenuItem icon={<ImageUp aria-hidden="true" />} onSelect={() => inputRef.current?.click()}>
+          Change cover
+        </MenuItem>
+        <MenuSeparator />
+        <MenuItem
+          tone="danger"
+          icon={<Trash2 aria-hidden="true" />}
+          onSelect={() => setDeleting(true)}
+        >
+          Delete
+        </MenuItem>
+      </Menu>
       <input
         ref={inputRef}
         type="file"
@@ -56,6 +110,20 @@ export function ManageButtons({ novel }: { novel: NovelDetail }) {
         }}
       />
       <EditDetailsDialog novel={novel} open={editing} onClose={() => setEditing(false)} />
+      <ConfirmDialog
+        open={deleting}
+        title={`Delete “${novel.title}”?`}
+        confirmLabel="Delete"
+        tone="danger"
+        busy={destroy.isPending}
+        onCancel={() => setDeleting(false)}
+        onConfirm={() => destroy.mutate(undefined, { onSettled: () => setDeleting(false) })}
+      >
+        <p>
+          Its {plural(novel.totalChapters, 'chapter')} and their stored text, its cover and your
+          reading history of it are deleted from this device. It can't be undone.
+        </p>
+      </ConfirmDialog>
     </>
   );
 }
@@ -161,32 +229,5 @@ function EditDetailsDialog({
         )}
       </form>
     </Dialog>
-  );
-}
-
-/** "Delete": the novel and everything stored for it, after a confirmation. */
-export function DeleteNovel({ novel }: { novel: NovelDetail }) {
-  const [open, setOpen] = useState(false);
-  const destroy = useDeleteNovel(novel.id, novel.title);
-  return (
-    <>
-      <Button variant="ghost" icon={<Trash2 aria-hidden="true" />} onClick={() => setOpen(true)}>
-        Delete
-      </Button>
-      <ConfirmDialog
-        open={open}
-        title={`Delete “${novel.title}”?`}
-        confirmLabel="Delete"
-        tone="danger"
-        busy={destroy.isPending}
-        onCancel={() => setOpen(false)}
-        onConfirm={() => destroy.mutate(undefined, { onSettled: () => setOpen(false) })}
-      >
-        <p>
-          Its {plural(novel.totalChapters, 'chapter')} and their stored text, its cover and your
-          reading history of it are deleted from this device. It can't be undone.
-        </p>
-      </ConfirmDialog>
-    </>
   );
 }

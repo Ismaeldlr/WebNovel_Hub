@@ -25,6 +25,6 @@ body:
     id: version
     attributes:
       label: App version and platform
-      placeholder: 0.1.0 on Android
+      placeholder: 0.2.0 on Android
     validations:
       required: true

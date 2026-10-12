@@ -117,3 +117,53 @@ export function chapterParagraphs(text: string): string[][] {
     .filter((paragraph) => paragraph.trim() !== '')
     .map((paragraph) => paragraph.split('\n'));
 }
+
+/** Letters and digits only, lower case and single-spaced: "1. Good Morning!" -> "1 good morning". */
+function headingKey(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/** A heading's words without a leading "chapter 12", "ch 12" or "12". */
+function headingWords(key: string): string {
+  return key
+    .replace(/^(?:chapter|ch)\s*\d+\s*/, '')
+    .replace(/^\d+\s*/, '')
+    .trim();
+}
+
+/** How many of a chapter's first lines may go as a repeat of its title. */
+const REPEATED_TITLE_LINES = 3;
+
+/**
+ * The chapter's paragraphs without the first lines when they only repeat its title: many
+ * sites start a chapter's text with "Chapter 12" and its name, which the reader already
+ * shows as the heading. At most three lines go, and never the whole text.
+ */
+export function withoutRepeatedTitle(
+  paragraphs: string[][],
+  title: string,
+  number: number,
+): string[][] {
+  const key = headingKey(title);
+  const words = headingWords(key);
+  const repeats = (line: string) => {
+    const lineKey = headingKey(line);
+    if (lineKey === '') return false;
+    if (lineKey === key || (words !== '' && headingWords(lineKey) === words)) return true;
+    const numbered = /^(?:chapter|ch)?\s*(\d+)$/.exec(lineKey);
+    return numbered !== null && Number(numbered[1]) === number;
+  };
+
+  const rest = paragraphs.map((lines) => [...lines]);
+  for (let removed = 0; removed < REPEATED_TITLE_LINES; removed += 1) {
+    const first = rest[0];
+    const line = first?.[0];
+    if (first === undefined || line === undefined || !repeats(line)) break;
+    first.shift();
+    if (first.length === 0) rest.shift();
+  }
+  return rest.length > 0 ? rest : paragraphs;
+}

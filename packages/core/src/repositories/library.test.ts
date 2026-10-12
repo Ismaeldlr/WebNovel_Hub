@@ -6,6 +6,7 @@ const NO_FILTERS: LibraryFilters = {
   source: null,
   favorite: null,
   unread: null,
+  tag: null,
   q: null,
 };
 
@@ -20,6 +21,7 @@ describe('libraryFilterSql', () => {
       source: 'royal_road',
       favorite: false,
       unread: true,
+      tag: null,
       q: 'Mother  learning',
     });
     expect(values).toEqual(['following', 'royal_road', false, '%mother%', '%learning%']);
@@ -42,7 +44,12 @@ describe('libraryFilterSql', () => {
 
   it('never puts request text into the SQL, only into the values', () => {
     const hostile = "x' OR 1=1; DROP TABLE novels; --";
-    const { where, values } = libraryFilterSql({ ...NO_FILTERS, source: hostile, q: hostile });
+    const { where, values } = libraryFilterSql({
+      ...NO_FILTERS,
+      source: hostile,
+      tag: hostile,
+      q: hostile,
+    });
     expect(where).not.toMatch(/DROP|1=1;/i);
     expect(values).toContain(hostile);
     // LIKE wildcards in a search are escaped, so they match themselves.

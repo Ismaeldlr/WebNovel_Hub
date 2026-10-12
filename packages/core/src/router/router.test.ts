@@ -77,6 +77,44 @@ describe('routing', () => {
     expect(body(saved)).toMatchObject({ data: { preferences: { lineSpacing: 1.8 } } });
   });
 
+  it('adds, changes and deletes terms, checking their text', async () => {
+    const { id } = await insertNovel(core.db);
+    const post = (body: unknown) => call({ method: 'POST', path: '/terms', body });
+
+    const created = await post({
+      novelId: id.toUpperCase(),
+      original: ' Lin ',
+      replacement: 'Lyn',
+    });
+    expect(created.status).toBe(201);
+    const term = (body(created).data as { term: { id: string } }).term;
+    expect(body(created).data).toMatchObject({ term: { novel: { id }, original: 'Lin' } });
+    expect(body(await get(`/novels/${id}/terms`)).data).toMatchObject({ terms: [{ id: term.id }] });
+
+    expect(body(await post({ novelId: null, original: '  ', replacement: 'x' })).error).toBe(
+      'Enter the text to replace.',
+    );
+    expect(body(await post({ novelId: 'n1', original: 'a', replacement: 'b' })).error).toBe(
+      'novelId must be a novel id, or null for every novel.',
+    );
+    expect(
+      body(await post({ novelId: null, original: 'a', replacement: 'b', regex: true })).error,
+    ).toBe('A term has only a novelId, an original and a replacement (not: regex).');
+
+    const patch = (changes: unknown) =>
+      call({ method: 'PATCH', path: `/terms/${term.id}`, body: changes });
+    expect(body(await patch({})).error).toBe(
+      'Change at least one of the novel, the original or the replacement.',
+    );
+    expect(body(await patch({ replacement: 'Lynn' })).data).toMatchObject({
+      term: { replacement: 'Lynn' },
+    });
+    expect((await call({ method: 'DELETE', path: `/terms/${term.id}` })).status).toBe(200);
+    expect(body(await call({ method: 'DELETE', path: `/terms/${term.id}` })).error).toBe(
+      'This term no longer exists.',
+    );
+  });
+
   it('decodes parameters and keeps query values as text', async () => {
     const { id } = await insertNovel(core.db, { title: 'Ünïcode Tale', chapters: 12 });
     const page = await get(

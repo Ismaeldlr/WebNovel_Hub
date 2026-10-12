@@ -1,29 +1,23 @@
 import type { NovelDetail } from '@webnovel-hub/shared';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, ExternalLink, SearchX } from 'lucide-react';
+import { type RefObject, useRef } from 'react';
 import { Link, useParams } from 'react-router';
 import { novelsApi } from '../../api/catalog';
 import { ApiError } from '../../api/client';
+import { libraryTagPath } from '../../app/navigation';
 import { queryKeys } from '../../app/queryClient';
-import { Cover } from '../../components/Cover';
-import {
-  Badge,
-  ButtonLink,
-  EmptyState,
-  ErrorState,
-  ProgressBar,
-  Spinner,
-} from '../../components/ui';
+import { Cover, CoverBackdrop } from '../../components/Cover';
+import { Badge, ButtonLink, EmptyState, ErrorState, Spinner } from '../../components/ui';
 import { formatDate, formatRelativeTime, plural } from '../../lib/format';
-import { usePageTitle } from '../../lib/hooks';
+import { usePageBar, usePageTitle, useUnderTopBar } from '../../lib/hooks';
 import { progress, readingTarget } from '../../lib/reading';
 import { FavoriteButton, StatusSelect } from '../library/LibraryControls';
 import { ChapterList } from './ChapterList';
 import { Description } from './Description';
 import styles from './NovelPage.module.css';
-import { ExportButton } from '../exports/ExportButton';
-import { DeleteNovel, ManageButtons } from './ManageNovel';
-import { FullFetchButton, FullFetchStatus } from './FullFetch';
+import { MoreActions } from './ManageNovel';
+import { FullFetchStatus } from './FullFetch';
 import { UpdateCheckButton, UpdateCheckStatus } from './UpdateCheck';
 import { useFullFetch } from './useFullFetch';
 import { useUpdateCheck } from './useUpdateCheck';
@@ -36,6 +30,11 @@ export function NovelPage() {
     queryFn: ({ signal }) => novelsApi.get(novelId, signal),
   });
   usePageTitle(novel.data?.title ?? 'Novel');
+  // Phones: a back button, and the cover shows through the top bar until the title
+  // scrolls under it.
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const titleUnderBar = useUnderTopBar(titleRef, novel.isSuccess);
+  usePageBar({ back: true, clear: novel.isSuccess && !titleUnderBar });
 
   if (novel.isPending) {
     return (
@@ -69,18 +68,35 @@ export function NovelPage() {
       />
     );
   }
-  return <NovelView novel={novel.data} />;
+  return <NovelView novel={novel.data} titleRef={titleRef} />;
 }
 
-function NovelView({ novel }: { novel: NovelDetail }) {
+function NovelView({
+  novel,
+  titleRef,
+}: {
+  novel: NovelDetail;
+  titleRef: RefObject<HTMLHeadingElement | null>;
+}) {
   const { library } = novel;
   const target = readingTarget(novel.id, library);
+  const { percent } = progress(library, novel.totalChapters);
   const updates = useUpdateCheck(novel);
   const fullFetch = useFullFetch(novel);
+
+  const notes = [
+    library?.lastReadAt && `Last read ${formatRelativeTime(library.lastReadAt)}`,
+    updates.available &&
+      (novel.lastCheckedAt
+        ? `Checked for updates ${formatRelativeTime(novel.lastCheckedAt)}`
+        : 'Not checked for updates yet'),
+    `Added ${formatDate(novel.createdAt)}`,
+  ].filter(Boolean);
 
   return (
     <article className={styles.page} aria-labelledby="novel-title">
       <header className={styles.hero}>
+        <CoverBackdrop coverUrl={novel.coverUrl} className={styles.backdrop} />
         <div className={styles.heroCover}>
           <Cover
             title={novel.title}
@@ -91,55 +107,59 @@ function NovelView({ novel }: { novel: NovelDetail }) {
           />
         </div>
         <div className={styles.heroText}>
+          <h1 ref={titleRef} id="novel-title" className={styles.title}>
+            {novel.title}
+          </h1>
+          {novel.author && <p className={styles.author}>by {novel.author}</p>}
           <p className={styles.source}>
-            <Badge>{novel.source.name}</Badge>
-            {novel.sourceUrl && (
+            {novel.sourceUrl ? (
               <a
                 href={novel.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={styles.sourceLink}
+                className={styles.sourcePill}
+                aria-label={`View on ${novel.source.name} (opens in a new tab)`}
               >
-                View on {novel.source.name}
+                {novel.source.name}
                 <ExternalLink aria-hidden="true" />
-                <span className="visually-hidden"> (opens in a new tab)</span>
               </a>
+            ) : (
+              <span className={styles.sourcePill}>{novel.source.name}</span>
             )}
           </p>
-          <h1 id="novel-title" className={styles.title}>
-            {novel.title}
-          </h1>
-          {novel.author && <p className={styles.author}>by {novel.author}</p>}
-          {novel.tags.length > 0 && (
-            <ul className={styles.tags} aria-label="Tags">
-              {novel.tags.map((tag) => (
-                <li key={tag}>
-                  <Badge>{tag}</Badge>
-                </li>
-              ))}
-            </ul>
-          )}
-          <dl className={styles.facts}>
-            <div>
-              <dt>Chapters</dt>
-              <dd>{novel.totalChapters.toLocaleString()}</dd>
-            </div>
-            {novel.latestChapterAt && (
-              <div>
-                <dt>Latest chapter</dt>
-                <dd>{formatRelativeTime(novel.latestChapterAt)}</dd>
-              </div>
-            )}
-            <div>
-              <dt>Checked for updates</dt>
-              <dd>{novel.lastCheckedAt ? formatRelativeTime(novel.lastCheckedAt) : 'Not yet'}</dd>
-            </div>
-            <div>
-              <dt>Added</dt>
-              <dd>{formatDate(novel.createdAt)}</dd>
-            </div>
-          </dl>
         </div>
+        <dl className={styles.facts}>
+          <div>
+            <dt>Chapters</dt>
+            <dd>{novel.totalChapters.toLocaleString()}</dd>
+          </div>
+          {library && library.newChapterCount > 0 && (
+            <div>
+              <dt>New</dt>
+              <dd>
+                <Link
+                  to="?order=desc"
+                  className={styles.newLink}
+                  aria-label={plural(library.newChapterCount, 'new chapter')}
+                >
+                  {library.newChapterCount.toLocaleString()}
+                </Link>
+              </dd>
+            </div>
+          )}
+          {novel.latestChapterAt && (
+            <div>
+              <dt>Latest chapter</dt>
+              <dd>{formatRelativeTime(novel.latestChapterAt)}</dd>
+            </div>
+          )}
+          {library && (
+            <div>
+              <dt>Read</dt>
+              <dd>{percent}%</dd>
+            </div>
+          )}
+        </dl>
       </header>
 
       <section className={styles.actions} aria-label="Reading and library">
@@ -148,36 +168,35 @@ function NovelView({ novel }: { novel: NovelDetail }) {
           variant="primary"
           icon={<BookOpen aria-hidden="true" />}
           aria-label={`${target.label} at chapter ${target.chapter}`}
+          className={styles.read}
         >
           {target.label}
           {library?.lastReadChapterNumber ? ` · Ch. ${target.chapter}` : ''}
         </ButtonLink>
-        {library && (
-          <>
-            <div className={styles.status}>
-              <StatusSelect novelId={novel.id} title={novel.title} status={library.status} />
-            </div>
-            <FavoriteButton
-              novelId={novel.id}
-              title={novel.title}
-              isFavorite={library.isFavorite}
-            />
-          </>
-        )}
-        <UpdateCheckButton state={updates} />
-        <FullFetchButton state={fullFetch} />
-        <ExportButton
-          novel={novel}
-          storedChapters={fullFetch.storedChapters}
-          totalChapters={fullFetch.totalChapters}
-        />
-        <ManageButtons novel={novel} />
-        <DeleteNovel novel={novel} />
+        <div className={styles.actionRow}>
+          {library && (
+            <>
+              <StatusSelect
+                novelId={novel.id}
+                title={novel.title}
+                status={library.status}
+                button
+                className={styles.action}
+              />
+              <FavoriteButton
+                novelId={novel.id}
+                title={novel.title}
+                isFavorite={library.isFavorite}
+                className={styles.action}
+              />
+            </>
+          )}
+          <UpdateCheckButton state={updates} className={styles.action} />
+          <MoreActions novel={novel} fullFetch={fullFetch} className={styles.action} />
+        </div>
       </section>
       <UpdateCheckStatus novel={novel} state={updates} />
       <FullFetchStatus novel={novel} state={fullFetch} />
-
-      {library && <Progress novel={novel} />}
 
       <section className={styles.section} aria-labelledby="novel-about">
         <h2 id="novel-about" className={styles.sectionTitle}>
@@ -188,6 +207,22 @@ function NovelView({ novel }: { novel: NovelDetail }) {
         ) : (
           <p className={styles.muted}>{novel.source.name} gives no description for this novel.</p>
         )}
+        {novel.tags.length > 0 && (
+          <ul className={styles.tags} aria-label="Tags">
+            {novel.tags.map((tag) => (
+              <li key={tag}>
+                <Link
+                  to={libraryTagPath(tag)}
+                  className={styles.tagLink}
+                  aria-label={`${tag}: show your novels with this tag`}
+                >
+                  <Badge>{tag}</Badge>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className={styles.notes}>{notes.join(' · ')}</p>
       </section>
 
       <section className={styles.section} aria-labelledby="novel-chapters">
@@ -198,48 +233,5 @@ function NovelView({ novel }: { novel: NovelDetail }) {
         <ChapterList novelId={novel.id} totalChapters={novel.totalChapters} />
       </section>
     </article>
-  );
-}
-
-/** The progress section. */
-function Progress({ novel }: { novel: NovelDetail }) {
-  const { library } = novel;
-  const { reached, total, percent } = progress(library, novel.totalChapters);
-  if (!library) return null;
-  return (
-    <section className={styles.progress} aria-labelledby="novel-progress">
-      <h2 id="novel-progress" className="visually-hidden">
-        Your progress
-      </h2>
-      <div className={styles.progressHead}>
-        <p>
-          <strong>
-            {reached === 0
-              ? 'Not started'
-              : `Chapter ${reached.toLocaleString()} of ${total.toLocaleString()}`}
-          </strong>
-          {reached > 0 && <span className={styles.muted}> · {percent}%</span>}
-        </p>
-        <p className={styles.muted}>
-          {library.lastReadAt
-            ? `Last read ${formatRelativeTime(library.lastReadAt)}`
-            : `Added ${formatRelativeTime(library.addedAt)}`}
-          {library.newChapterCount > 0 && (
-            <>
-              {' · '}
-              <Link to="?order=desc" className={styles.newLink}>
-                {plural(library.newChapterCount, 'new chapter')}
-              </Link>
-            </>
-          )}
-        </p>
-      </div>
-      <ProgressBar
-        label="Reading progress"
-        value={reached}
-        max={Math.max(total, 1)}
-        valueText={`Chapter ${reached} of ${total}`}
-      />
-    </section>
   );
 }

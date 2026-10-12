@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EPUB_FILE_NAME_MAX, epubFileName } from './exports.js';
-import { chapterParagraphs } from './reader.js';
+import { chapterParagraphs, withoutRepeatedTitle } from './reader.js';
 
 describe('epubFileName', () => {
   it('names the file after the title', () => {
@@ -29,5 +29,28 @@ describe('chapterParagraphs', () => {
       ['Three.'],
     ]);
     expect(chapterParagraphs('')).toEqual([]);
+  });
+});
+
+describe('withoutRepeatedTitle', () => {
+  const text = (first: string) => chapterParagraphs(`${first}\n\nThe story starts.`);
+
+  it('leaves out first lines that only repeat the chapter title', () => {
+    const story = [['The story starts.']];
+    expect(
+      withoutRepeatedTitle(text('Chapter 001\nGood Morning Brother'), '1. Good Morning Brother', 1),
+    ).toEqual(story);
+    expect(withoutRepeatedTitle(text('Chapter 12: The Pact'), 'Chapter 12 - The Pact', 12)).toEqual(
+      story,
+    );
+    expect(withoutRepeatedTitle(text('Prologue'), 'Prologue', 1)).toEqual(story);
+  });
+
+  it('keeps text that is not the title, and never leaves nothing', () => {
+    expect(withoutRepeatedTitle(text('Chapter 2'), 'Chapter 1', 1)).toEqual([
+      ['Chapter 2'],
+      ['The story starts.'],
+    ]);
+    expect(withoutRepeatedTitle([['The Pact']], 'The Pact', 3)).toEqual([['The Pact']]);
   });
 });

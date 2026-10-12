@@ -4,6 +4,8 @@ import styles from './Tabs.module.css';
 export interface TabItem<Id extends string> {
   id: Id;
   label: string;
+  /** With `chips`, shown after the label on phones (e.g. how many novels). */
+  count?: number;
 }
 
 interface TabsProps<Id extends string> {
@@ -14,6 +16,8 @@ interface TabsProps<Id extends string> {
   onSelect: (id: Id) => void;
   /** Prefix for the tab ids (`<prefix>-tab-<id>`) and the panel id (`<prefix>-panel`). */
   idPrefix: string;
+  /** Phones: separate chips in a row that scrolls sideways, with their counts. */
+  chips?: boolean;
 }
 
 /**
@@ -26,6 +30,7 @@ export function Tabs<Id extends string>({
   selected,
   onSelect,
   idPrefix,
+  chips = false,
 }: TabsProps<Id>) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -53,7 +58,7 @@ export function Tabs<Id extends string>({
   };
 
   return (
-    <div role="tablist" aria-label={label} className={styles.tabs}>
+    <div role="tablist" aria-label={label} className={styles.tabs} data-chips={chips || undefined}>
       {tabs.map((tab, index) => (
         <button
           key={tab.id}
@@ -71,6 +76,11 @@ export function Tabs<Id extends string>({
           onKeyDown={(event) => onKeyDown(event, index)}
         >
           {tab.label}
+          {tab.count !== undefined && (
+            <span className={styles.count} aria-hidden="true">
+              {tab.count.toLocaleString()}
+            </span>
+          )}
         </button>
       ))}
     </div>

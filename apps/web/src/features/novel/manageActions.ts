@@ -21,13 +21,14 @@ export function checkCoverFile(file: File): string | null {
   return null;
 }
 
-/** Everything that shows a novel's title or cover: lists, search, history, profile. */
+/** Everything that shows a novel's title or cover: lists, search, history, profile, terms. */
 function refreshNovelViews(queryClient: QueryClient, novelId: string) {
   for (const queryKey of [
     queryKeys.library,
     queryKeys.searches,
     queryKeys.history,
     queryKeys.profile,
+    queryKeys.terms,
     queryKeys.readerNovel(novelId),
   ]) {
     void queryClient.invalidateQueries({ queryKey });

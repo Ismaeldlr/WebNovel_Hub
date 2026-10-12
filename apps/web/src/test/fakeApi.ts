@@ -17,6 +17,7 @@ import {
   type ReaderPreferences,
   type SourceRef,
   type SourceSite,
+  type Term,
   type UpdateRun,
   type FullFetch,
   isJobFinished,
@@ -130,6 +131,8 @@ export interface FakeApi {
   /** The bodies of successful password changes. */
   /** Management calls: `PATCH <id>`, `POST <id>`, `DELETE <id>`. */
   manageCalls: string[];
+  /** Terms, in the order they were added. */
+  terms: Term[];
 }
 
 /** What cards and search results show of a novel (NovelSummary). */
@@ -194,6 +197,7 @@ interface NovelOptions {
   latestChapterAt?: string | null;
   chapters?: number;
   sourceUrl?: string;
+  tags?: string[];
   /** An EPUB import: no source site, nothing to check for updates. */
   epub?: boolean;
   /** Put it in the library, with this state. */
@@ -221,7 +225,7 @@ export function addNovel(api: FakeApi, options: NovelOptions = {}): string {
     title: options.title ?? `Novel ${counter}`,
     author: options.author === undefined ? 'A. Writer' : options.author,
     description: 'A first paragraph.\n\nA second paragraph.',
-    tags: ['Fantasy', 'Adventure'],
+    tags: options.tags ?? ['Fantasy', 'Adventure'],
     coverUrl: null,
     totalChapters: total,
     updateFailure: null,
@@ -301,6 +305,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
     historyPageSize: 50,
     profile: null,
     manageCalls: [],
+    terms: [],
   };
 
   const reply = (status: number, data: unknown, error: string | null = null) =>
@@ -317,6 +322,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
     if (!entry || !library) return null;
     return { novel: summary(entry.novel), library };
   };
+  const novelTags = (id: string) => api.novels.get(id)?.novel.tags ?? [];
 
   /** Novels whose title or author has every word of `text`. */
   const catalogItems = (text: string): SearchItem[] =>
@@ -416,6 +422,52 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
         return reply(200, { items, page: 1, limit: 24, total: items.length });
       }
     }
+  };
+
+  /** /terms, as the core orders them: every novel's first, then by novel and original. */
+  const terms = (route: string, id: string, body: Record<string, unknown>) => {
+    const sorted = (list: Term[]) =>
+      [...list].sort(
+        (a, b) =>
+          Number(a.novel !== null) - Number(b.novel !== null) ||
+          (a.novel?.title ?? '').localeCompare(b.novel?.title ?? '') ||
+          a.original.localeCompare(b.original),
+      );
+    if (route === 'GET /terms') return reply(200, { terms: sorted(api.terms) });
+    if (route === 'GET /novels/:id/terms') {
+      const own = api.terms.filter((term) => term.novel === null || term.novel.id === id);
+      return reply(200, { terms: sorted(own) });
+    }
+    const existing = api.terms.find((term) => term.id === id);
+    if (route === 'DELETE /terms/:id') {
+      if (!existing) return notFound('This term no longer exists.');
+      api.terms = api.terms.filter((term) => term !== existing);
+      return reply(200, null);
+    }
+    if (route === 'PATCH /terms/:id' && !existing) return notFound('This term no longer exists.');
+    const novelId = body.novelId === undefined ? (existing?.novel?.id ?? null) : body.novelId;
+    const original = typeof body.original === 'string' ? body.original.trim() : existing?.original;
+    const replacement =
+      typeof body.replacement === 'string' ? body.replacement.trim() : existing?.replacement;
+    if (!original) return bad('Enter the text to replace.');
+    const clash = api.terms.find(
+      (term) =>
+        term !== existing && term.original === original && (term.novel?.id ?? null) === novelId,
+    );
+    if (clash) return reply(409, null, `This novel already has a term for “${original}”.`);
+    const novel = typeof novelId === 'string' ? api.novels.get(novelId)?.novel : undefined;
+    const term: Term = {
+      id: existing?.id ?? `term-${api.terms.length + 1}`,
+      novel: novel ? { id: novel.id, title: novel.title } : null,
+      original,
+      replacement: replacement ?? '',
+      createdAt: existing?.createdAt ?? '2026-10-11T10:00:00.000Z',
+      updatedAt: '2026-10-11T10:00:00.000Z',
+    };
+    api.terms = existing
+      ? api.terms.map((other) => (other === existing ? term : other))
+      : [...api.terms, term];
+    return reply(existing ? 200 : 201, { term });
   };
 
   /** Editing a novel's details or cover, or deleting it. */
@@ -530,6 +582,8 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
         ![
           'recent',
           'stats',
+          'tags',
+          'terms',
           'chapters',
           'status',
           'favorite',
@@ -555,6 +609,12 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
     const id = parts[1] ?? '';
 
     switch (route) {
+      case 'GET /terms':
+      case 'GET /novels/:id/terms':
+      case 'POST /terms':
+      case 'PATCH /terms/:id':
+      case 'DELETE /terms/:id':
+        return terms(route, id, body);
       case 'GET /sources':
         return reply(200, { sources: SOURCES });
       case 'GET /sources/:id/account':
@@ -614,6 +674,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
         const source = search.get('source');
         const favorite = search.get('favorite');
         const unread = search.get('unread');
+        const tag = search.get('tag')?.toLowerCase() ?? null;
         const q = search.get('q') ?? '';
         const items = [...api.library.keys()]
           .map((novelId) => item(novelId))
@@ -624,6 +685,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
               (source === null || novel.source.key === source) &&
               (favorite === null || library.isFavorite === (favorite === 'true')) &&
               (unread === null || library.newChapterCount > 0 === (unread === 'true')) &&
+              (tag === null || novelTags(novel.id).some((t) => t.toLowerCase() === tag)) &&
               matchesWords(novel, q),
           )
           .sort((a, b) => LIBRARY_ORDER[sort](a, b) || byTitle(a, b));
@@ -685,6 +747,19 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
           page,
           limit,
           total: api.updateRuns.length,
+        });
+      }
+      case 'GET /library/tags': {
+        const counts = new Map<string, { tag: string; novels: number }>();
+        for (const id of api.library.keys()) {
+          for (const tag of novelTags(id)) {
+            const known = counts.get(tag.toLowerCase());
+            if (known) known.novels += 1;
+            else counts.set(tag.toLowerCase(), { tag, novels: 1 });
+          }
+        }
+        return reply(200, {
+          tags: [...counts.values()].sort((a, b) => a.tag.localeCompare(b.tag)),
         });
       }
       case 'GET /library/stats': {

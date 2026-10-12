@@ -9,4 +9,5 @@ export * from './preferences.js';
 export * from './reader.js';
 export * from './search.js';
 export * from './sources.js';
+export * from './terms.js';
 export * from './updates.js';

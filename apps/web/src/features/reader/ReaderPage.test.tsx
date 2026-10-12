@@ -207,7 +207,9 @@ describe('reader progress and library', () => {
       'href',
       `/reader/${id}/8`,
     );
-    expect(screen.getByText('Chapter 8 of 12')).toBeVisible();
+    expect(screen.getByText('Read', { selector: 'dt' }).nextElementSibling).toHaveTextContent(
+      '67%',
+    );
   });
 });
 
@@ -219,5 +221,87 @@ describe('chapter text', () => {
     renderApp(`/reader/${id}/1`);
     expect(await screen.findByText('<b>bold?</b>')).toBeVisible();
     expect(document.querySelector('img')).toBeNull();
+  });
+});
+
+describe('terms in the reader', () => {
+  /** The paragraph that reads `text`, terms and all. */
+  const paragraph = (text: string) =>
+    screen.findByText((_, element) => element?.tagName === 'P' && element.textContent === text);
+
+  /** Selects `text` inside the element that shows it, as a reader dragging over it would. */
+  function select(text: string) {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node: Node | null = walker.nextNode();
+    while (node && !node.textContent?.includes(text)) node = walker.nextNode();
+    if (!node) throw new Error(`no text node has “${text}”`);
+    const start = node.textContent!.indexOf(text);
+    const range = document.createRange();
+    range.setStart(node, start);
+    range.setEnd(node, start + text.length);
+    const selection = document.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+    fireEvent(document, new Event('selectionchange'));
+  }
+
+  it('adds a term from a selection, shows it in the text, and edits it', async () => {
+    const api = signedIn();
+    const id = addNovel(api, { title: 'Martial World', chapters: 1, fetched: [1] });
+    api.contents.set(`${id}-c1`, 'Lin Ming met Lin Mingyu.\n\nThen Lin Ming left.');
+    const { user } = renderApp(`/reader/${id}/1`);
+    await screen.findByText('Lin Ming met Lin Mingyu.');
+
+    select('Lin Ming');
+    await user.click(await screen.findByRole('button', { name: 'Add term' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add term' });
+    expect(within(dialog).getByLabelText('Text in the chapters')).toHaveValue('Lin Ming');
+    expect(within(dialog).getByRole('radio', { name: 'Martial World' })).toBeChecked();
+    await user.type(within(dialog).getByLabelText('Show instead'), 'Lynn Ming');
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+    // Whole words only: "Lin Mingyu" stays.
+    expect(await paragraph('Lynn Ming met Lin Mingyu.')).toBeVisible();
+    expect(await paragraph('Then Lynn Ming left.')).toBeVisible();
+    expect(api.terms).toMatchObject([
+      { novel: { id }, original: 'Lin Ming', replacement: 'Lynn Ming' },
+    ]);
+
+    // Selecting what a term put there edits that term.
+    select('Lynn');
+    await user.click(await screen.findByRole('button', { name: 'Edit term' }));
+    const edit = await screen.findByRole('dialog', { name: 'Edit term' });
+    expect(within(edit).getByLabelText('Text in the chapters')).toHaveValue('Lin Ming');
+    await user.click(within(edit).getByRole('radio', { name: 'Every novel' }));
+    await user.click(within(edit).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(api.terms[0]?.novel).toBeNull());
+
+    select('Lynn Ming');
+    await user.click(await screen.findByRole('button', { name: 'Edit term' }));
+    await user.click(
+      within(await screen.findByRole('dialog', { name: 'Edit term' })).getByRole('button', {
+        name: 'Delete',
+      }),
+    );
+    expect(await paragraph('Lin Ming met Lin Mingyu.')).toBeVisible();
+    expect(api.terms).toEqual([]);
+  });
+
+  it('offers nothing for a selection across paragraphs or outside the text', async () => {
+    const api = signedIn();
+    const id = addNovel(api, { chapters: 1, fetched: [1] });
+    renderApp(`/reader/${id}/1`);
+    const first = await screen.findByText('The opening of chapter 1.');
+
+    const range = document.createRange();
+    range.setStart(first.firstChild!, 4);
+    range.setEnd(screen.getByText(/A second paragraph,/).firstChild!, 3);
+    document.getSelection()!.removeAllRanges();
+    document.getSelection()!.addRange(range);
+    fireEvent(document, new Event('selectionchange'));
+
+    select('Chapter 1');
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(screen.queryByRole('button', { name: 'Add term' })).toBeNull();
   });
 });

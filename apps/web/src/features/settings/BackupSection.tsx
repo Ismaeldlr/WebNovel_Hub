@@ -133,9 +133,7 @@ export function BackupSection({ kind }: { kind: Exclude<AppKind, 'browser'> }) {
   return (
     <Card as="section" aria-labelledby="settings-backup" className={styles.section}>
       <SectionHeading id="settings-backup" title="Backup">
-        {kind === 'android'
-          ? 'Save your library (novels, saved chapters, progress and settings) to one file, through the share sheet: to Files, Drive or your computer. Restoring a file replaces the library on this phone, in this app or the Windows one.'
-          : 'Save your library (novels, saved chapters, progress and settings) to one file. Restoring a file replaces the library on this computer, in this app or the Android one.'}
+        One file with your novels, saved chapters, progress and settings.
       </SectionHeading>
       {restored && (
         <Notice variant="inline" tone={restored.ok ? 'ok' : 'danger'} role="status">

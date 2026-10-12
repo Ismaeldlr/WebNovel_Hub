@@ -28,7 +28,7 @@ export function useWtrLabNotice(source: string | undefined) {
       description:
         'Past chapter 10, its AI translation needs an account, so those chapters may not download.',
       actions: [
-        { label: 'Sign in', onClick: () => void navigate(`/settings#${WTR_LAB_SECTION}`) },
+        { label: 'Sign in', onClick: () => void navigate(`/settings/accounts#${WTR_LAB_SECTION}`) },
         {
           label: "I don't care",
           onClick: () =>

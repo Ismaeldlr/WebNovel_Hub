@@ -6,18 +6,31 @@ import { plural } from '../../lib/format';
 import styles from './NovelPage.module.css';
 import type { UpdateCheckState } from './useUpdateCheck';
 
-/** The "Check for updates" button; hidden for EPUB imports. */
-export function UpdateCheckButton({ state }: { state: UpdateCheckState }) {
+/**
+ * The "Check for updates" button; hidden for EPUB imports. Phones show a shorter label
+ * (the button's name stays the full one).
+ */
+export function UpdateCheckButton({
+  state,
+  className,
+}: {
+  state: UpdateCheckState;
+  className?: string;
+}) {
   if (!state.available) return null;
   const busy = state.starting || state.active !== null;
+  const label = state.active ? 'Checking for updates…' : 'Check for updates';
   return (
     <Button
       variant="ghost"
       icon={<RefreshCw aria-hidden="true" />}
       busy={busy}
       onClick={state.start}
+      aria-label={label}
+      className={className}
     >
-      {state.active ? 'Checking for updates…' : 'Check for updates'}
+      <span className={styles.longLabel}>{label}</span>
+      <span className={styles.shortLabel}>{state.active ? 'Checking…' : 'Updates'}</span>
     </Button>
   );
 }

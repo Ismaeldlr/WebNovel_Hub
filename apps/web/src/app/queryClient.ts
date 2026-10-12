@@ -15,6 +15,7 @@ export const queryKeys = {
   libraryLists: ['library', 'list'] as const,
   libraryList: (params: object) => ['library', 'list', params] as const,
   libraryStats: ['library', 'stats'] as const,
+  libraryTags: ['library', 'tags'] as const,
   newChaptersCount: ['library', 'new-chapters-count'] as const,
   /** A novel's page; its chapter pages and update check live under the same prefix. */
   novel: (novelId: string) => ['novel', novelId] as const,
@@ -40,6 +41,9 @@ export const queryKeys = {
   historyStats: (params: object) => ['history', 'stats', params] as const,
   historyByNovel: (params: object) => ['history', 'by-novel', params] as const,
   historyNovels: (q: string) => ['history', 'novels', q] as const,
+  /** Every list of terms; `novelTerms` is those a novel's chapters use. */
+  terms: ['terms'] as const,
+  novelTerms: (novelId: string) => ['terms', 'novel', novelId] as const,
   /** The profile's statistics. */
   profile: ['profile'] as const,
   /** The reader preferences, saved in the background by features/preferences. */
