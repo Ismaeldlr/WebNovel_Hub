@@ -5,9 +5,6 @@ import { userApi } from '../../api/user';
 import { useToast } from '../../components/ui';
 import { PREFERENCES_QUERY_KEY, readMirror, saverFor, writeMirror } from './store';
 
-/** The one reader on this device. */
-const MIRROR_KEY = 'reader';
-
 /**
  * The reader's preferences. Until the library answers, this device's mirror of them
  * stands in, so the first screen already has the right theme and text size.
@@ -17,14 +14,14 @@ export function usePreferences() {
   const query = useQuery({
     queryKey: PREFERENCES_QUERY_KEY,
     queryFn: async ({ signal }) => saver.received(await userApi.preferences(signal)),
-    initialData: () => readMirror(MIRROR_KEY),
+    initialData: readMirror,
     // The mirror may be old: read the saved preferences at once all the same.
     initialDataUpdatedAt: 0,
   });
 
   const { data } = query;
   useEffect(() => {
-    if (data) writeMirror(MIRROR_KEY, data);
+    if (data) writeMirror(data);
   }, [data]);
   return query;
 }

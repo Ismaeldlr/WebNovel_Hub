@@ -92,31 +92,6 @@ export function paragraphs(plain: string): string {
     .join('');
 }
 
-type JsonObject = Record<string, unknown>;
-
-const isObject = (value: unknown): value is JsonObject =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-/** The first JSON-LD object of one of `types` (any type if none given), or {}. */
-export function jsonLd(root: HTMLElement, ...types: string[]): JsonObject {
-  for (const script of root.querySelectorAll('script[type="application/ld+json"]')) {
-    let data: unknown;
-    try {
-      data = JSON.parse(script.textContent);
-    } catch {
-      continue;
-    }
-    const items = isObject(data) ? (data['@graph'] ?? [data]) : data;
-    for (const item of Array.isArray(items) ? (items as unknown[]) : []) {
-      if (!isObject(item)) continue;
-      const kind = item['@type'];
-      const kinds = Array.isArray(kind) ? (kind as unknown[]) : [kind];
-      if (types.length === 0 || kinds.some((k) => types.includes(k as string))) return item;
-    }
-  }
-  return {};
-}
-
 /**
  * The JSON value that starts right after `marker` in a page's scripts, or undefined.
  * The value ends where its brackets (or string) close; whatever follows is ignored.

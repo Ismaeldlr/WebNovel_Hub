@@ -3,13 +3,13 @@ import type { NovelSummary } from './novels.js';
 
 /**
  * A novel the reader asked to fetch in full: its latest whole-novel fetch and how many
- * chapters are stored. The stored chapters download as an EPUB file from GET /api/novels/:id/epub.
+ * chapters are stored. The stored chapters download as an EPUB file from GET /novels/:id/epub.
  */
 export interface ExportItem extends FullFetchResponse {
   novel: NovelSummary;
 }
 
-/** Response of GET /api/exports: the novels most recently asked for first. */
+/** Response of GET /exports: the novels most recently asked for first. */
 export interface ExportListResponse {
   items: ExportItem[];
 }

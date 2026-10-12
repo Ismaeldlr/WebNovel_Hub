@@ -23,7 +23,7 @@ export interface HistoryFilter {
   novelId: string | null;
 }
 
-/** /api/history. */
+/** /history. */
 export const historyApi = {
   chapters: (filter: HistoryFilter, cursor: string | null, signal?: AbortSignal) =>
     apiRequest<HistoryPage>(

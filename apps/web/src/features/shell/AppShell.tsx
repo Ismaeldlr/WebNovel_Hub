@@ -11,7 +11,7 @@ import { TopBar } from './TopBar';
 const SIDEBAR_ID = 'app-sidebar';
 
 /**
- * The signed-in layout: sidebar, top bar and the page. Below 900 px
+ * The app's layout: sidebar, top bar and the page. Below 900 px
  * the sidebar becomes a drawer; while it is open, the rest of the page is inert, Escape or
  * a tap outside closes it, and focus returns to the menu button.
  */

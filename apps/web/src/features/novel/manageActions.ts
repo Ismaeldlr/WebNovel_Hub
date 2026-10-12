@@ -34,7 +34,7 @@ function refreshNovelViews(queryClient: QueryClient, novelId: string) {
   }
 }
 
-/** Saves a novel's details (PATCH /api/novels/:id); the page shows them at once. */
+/** Saves a novel's details (PATCH /novels/:id); the page shows them at once. */
 export function useUpdateDetails(novelId: string) {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -64,7 +64,7 @@ export function useUploadCover(novelId: string) {
   });
 }
 
-/** Deletes the novel for everyone, then goes to the library, where it no longer is. */
+/** Deletes the novel and its chapters, then goes to the library. */
 export function useDeleteNovel(novelId: string, title: string) {
   const queryClient = useQueryClient();
   const toast = useToast();

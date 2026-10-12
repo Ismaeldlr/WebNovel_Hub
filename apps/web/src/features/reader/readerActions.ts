@@ -6,7 +6,7 @@ import { useToast } from '../../components/ui';
 import { setReaderLibrary } from '../library/libraryActions';
 
 /**
- * Records a chapter as read. The server's progress then shows everywhere:
+ * Records a chapter as read. The saved progress then shows everywhere:
  * the reader, the novel page, its chapter list (read and NEW markers) and the library.
  */
 export function useMarkRead(novelId: string) {

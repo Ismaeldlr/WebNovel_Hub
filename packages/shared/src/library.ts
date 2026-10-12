@@ -2,17 +2,17 @@ import type { LibraryStatus } from './enums.js';
 import type { LibraryState, NovelSummary } from './novels.js';
 import type { SourceKey } from './sources.js';
 
-/** A novel in the signed-in user's library. */
+/** A novel in the library. */
 export interface LibraryItem {
   novel: NovelSummary;
   library: LibraryState;
 }
 
-/** Limits of GET /api/library?limit=. */
+/** Limits of GET /library?limit=. */
 export const LIBRARY_PAGE_LIMITS = { default: 24, max: 100 } as const;
 
 /**
- * Orders of GET /api/library?sort=, each in its natural direction:
+ * Orders of GET /library?sort=, each in its natural direction:
  * - `last_read`: most recently read first; a novel never read counts from when it was added.
  * - `last_updated`: newest chapter first; novels without chapter dates last.
  * - `title`: A to Z.
@@ -24,7 +24,7 @@ export type LibrarySort = (typeof LIBRARY_SORTS)[number];
 export const DEFAULT_LIBRARY_SORT: LibrarySort = 'last_read';
 
 /**
- * Query of GET /api/library. Every filter is optional, and the ones given
+ * Query of GET /library. Every filter is optional, and the ones given
  * must all match.
  */
 export interface LibraryQuery {
@@ -43,7 +43,7 @@ export interface LibraryQuery {
   limit?: number;
 }
 
-/** Response of GET /api/library: the novels that match, in `sort` order. */
+/** Response of GET /library: the novels that match, in `sort` order. */
 export interface LibraryPage {
   items: LibraryItem[];
   /** 1-based page number. */
@@ -55,24 +55,14 @@ export interface LibraryPage {
 }
 
 /**
- * Response of POST /api/library/:novelId (201 when added, 200 when it already was) and of
+ * Response of POST /library/:novelId (201 when added, 200 when it already was) and of
  * the PATCH endpoints.
  */
 export interface LibraryItemResponse {
   item: LibraryItem;
 }
 
-/** Body of PATCH /api/library/:novelId/status. */
-export interface UpdateLibraryStatusRequest {
-  status: LibraryStatus;
-}
-
-/** Body of PATCH /api/library/:novelId/favorite. */
-export interface UpdateFavoriteRequest {
-  isFavorite: boolean;
-}
-
-/** Response of GET /api/library/stats: the library page's summary. */
+/** Response of GET /library/stats: the library page's summary. */
 export interface LibraryStats {
   total: number;
   byStatus: Record<LibraryStatus, number>;
@@ -84,7 +74,7 @@ export interface LibraryStats {
   lastCheckedAt: string | null;
 }
 
-/** Response of GET /api/library/new-chapters-count. */
+/** Response of GET /library/new-chapters-count. */
 export interface NewChaptersCount {
   count: number;
 }

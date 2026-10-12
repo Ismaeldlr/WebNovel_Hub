@@ -106,6 +106,9 @@ Everything is in one SQLite database on your device:
   keeps it unless you tick the option to delete app data.
 - **Android:** in the app's private storage. Uninstalling the app deletes it.
 
+To keep a copy, or to move your library to another computer or phone, use **Settings →
+Backup**: it saves the database as a `.whub` file, which either app can restore.
+
 ## Building from source
 
 You need [Node.js](https://nodejs.org) 22.12 or newer (see [.nvmrc](.nvmrc)).

@@ -60,7 +60,7 @@ export const READER_PREFERENCE_LIMITS = {
 } as const;
 
 /**
- * The preferences a user can change (PATCH /api/user/preferences). `updateIntervalHours`
+ * The preferences a user can change (PATCH /user/preferences). `updateIntervalHours`
  * isn't one: novels are checked for new chapters on the server's schedule.
  */
 export const EDITABLE_PREFERENCES = [
@@ -78,10 +78,10 @@ export const EDITABLE_PREFERENCES = [
 ] as const;
 export type EditablePreference = (typeof EDITABLE_PREFERENCES)[number];
 
-/** Body of PATCH /api/user/preferences: the preferences to change, at least one. */
+/** Body of PATCH /user/preferences: the preferences to change, at least one. */
 export type PreferencesUpdate = Partial<Pick<ReaderPreferences, EditablePreference>>;
 
-/** Response of GET and PATCH /api/user/preferences: every preference, as saved. */
+/** Response of GET and PATCH /user/preferences: every preference, as saved. */
 export interface PreferencesResponse {
   preferences: ReaderPreferences;
 }

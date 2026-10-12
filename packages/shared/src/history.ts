@@ -6,11 +6,11 @@ import type { SourceRef } from './sources.js';
 export const HISTORY_RANGES = ['all', '7d', '30d'] as const;
 export type HistoryRange = (typeof HISTORY_RANGES)[number];
 
-/** GET /api/history: chapter entries per page. */
+/** GET /history: chapter entries per page. */
 export const HISTORY_LIMITS = { default: 50, max: 100 } as const;
-/** GET /api/history/by-novel: novels per page. */
+/** GET /history/by-novel: novels per page. */
 export const HISTORY_BY_NOVEL_LIMITS = { default: 24, max: 100 } as const;
-/** GET /api/history/novels: novels for the filter. */
+/** GET /history/novels: novels for the filter. */
 export const HISTORY_NOVELS_LIMITS = { default: 20, max: 100 } as const;
 
 /** A novel as a history entry names it. */
@@ -35,7 +35,7 @@ export interface HistoryEntry {
   chapter: { number: number; title: string };
 }
 
-/** Response of GET /api/history?range&novelId&cursor&limit. */
+/** Response of GET /history?range&novelId&cursor&limit. */
 export interface HistoryPage {
   items: HistoryEntry[];
   /** Pass as `cursor` for the next page; null on the last one. */
@@ -44,7 +44,7 @@ export interface HistoryPage {
   timezone: string;
 }
 
-/** Response of GET /api/history/stats?range&novelId: the summary above the history. */
+/** Response of GET /history/stats?range&novelId: the summary above the history. */
 export interface HistoryStats {
   /** Distinct chapters, novels and authors read in the range. */
   chaptersRead: number;
@@ -54,12 +54,12 @@ export interface HistoryStats {
   reads: number;
 }
 
-/** Response of GET /api/history/novels?q&limit: novels in the history, for its filter. */
+/** Response of GET /history/novels?q&limit: novels in the history, for its filter. */
 export interface HistoryNovelsResponse {
   novels: (HistoryNovelRef & { lastReadAt: string })[];
 }
 
-/** One novel of GET /api/history/by-novel. */
+/** One novel of GET /history/by-novel. */
 export interface HistoryNovelItem {
   novel: NovelSummary;
   /** Distinct chapters read in the range, and every view of them. */
@@ -75,7 +75,7 @@ export interface HistoryNovelItem {
   inLibrary: boolean;
 }
 
-/** Response of GET /api/history/by-novel?range&page&limit: most recently read first. */
+/** Response of GET /history/by-novel?range&page&limit: most recently read first. */
 export interface HistoryByNovelPage {
   items: HistoryNovelItem[];
   page: number;
@@ -86,7 +86,7 @@ export interface HistoryByNovelPage {
 /** How many days the profile's activity covers. */
 export const PROFILE_ACTIVITY_DAYS = 90;
 
-/** GET /api/user/profile. Days are the reader's (`timezone`). */
+/** GET /user/profile. Days are the reader's (`timezone`). */
 export interface Profile {
   timezone: string;
   totals: {

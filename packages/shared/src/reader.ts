@@ -78,7 +78,7 @@ export interface ReaderFailed extends ReaderView {
   error: ScrapeFailure;
 }
 
-/** Response of GET /api/reader/:novelId/chapters/:chapterNumber. */
+/** Response of GET /reader/:novelId/chapters/:chapterNumber. */
 export type ReaderChapterResponse = ReaderReady | ReaderFetching | ReaderFailed;
 
 /**
@@ -90,7 +90,7 @@ export interface ChapterNotFound {
 }
 
 /**
- * Response of POST /api/reader/:novelId/chapters/:chapterNumber/fetch: 202 with the job
+ * Response of POST /reader/:novelId/chapters/:chapterNumber/fetch: 202 with the job
  * when a fetch was queued, 200 with `jobId: null` when the text is already stored.
  */
 export interface ChapterFetchResponse {
@@ -98,7 +98,7 @@ export interface ChapterFetchResponse {
 }
 
 /**
- * Response of POST /api/reader/:novelId/chapters/:chapterNumber/read: the library entry
+ * Response of POST /reader/:novelId/chapters/:chapterNumber/read: the library entry
  * after the progress update, or null when the novel isn't in the library (history only).
  */
 export interface ReadChapterResponse {

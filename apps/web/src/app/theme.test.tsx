@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import indexHtml from '../../index.html?raw';
 import { PREFERENCES_STORAGE_KEY } from '../features/preferences/store';
 import { media } from '../test/setup';
-import { LEGACY_THEME_STORAGE_KEY, useTheme } from './theme';
+import { useTheme } from './theme';
 import { ThemeProvider } from './ThemeProvider';
 
 function Probe() {
@@ -25,10 +25,7 @@ const shown = () => screen.getByRole('status').textContent;
 
 /** This device's copy of the preferences, holding `theme`. */
 const mirror = (theme: string) =>
-  localStorage.setItem(
-    PREFERENCES_STORAGE_KEY,
-    JSON.stringify({ userId: 'id-reader', preferences: { theme } }),
-  );
+  localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify({ preferences: { theme } }));
 
 const renderProbe = () =>
   render(
@@ -76,13 +73,6 @@ describe('one theme for every page', () => {
     expect(meta.content).toBe('#123456');
     document.documentElement.style.removeProperty('--paper');
     meta.remove();
-  });
-
-  it('forgets the per-device theme kept by older versions', () => {
-    localStorage.setItem(LEGACY_THEME_STORAGE_KEY, 'dark');
-    renderProbe();
-    expect(localStorage.getItem(LEGACY_THEME_STORAGE_KEY)).toBeNull();
-    expect(shown()).toBe('system:light');
   });
 });
 

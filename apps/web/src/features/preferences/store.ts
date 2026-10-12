@@ -8,7 +8,7 @@ import {
 import type { QueryClient } from '@tanstack/react-query';
 import { userApi } from '../../api/user';
 
-/** The query holding the signed-in user's preferences (GET /api/user/preferences). */
+/** The query holding the reader's preferences (GET /user/preferences). */
 export const PREFERENCES_QUERY_KEY = ['preferences'] as const;
 
 /** How long after the last change the preferences are saved. */
@@ -17,14 +17,13 @@ export const SAVE_DELAY_MS = 600;
 // ---- The localStorage mirror ----
 
 /**
- * localStorage key of the mirror: `{ userId, preferences }`. The inline script in
- * index.html reads the theme from it to paint every page in it before the first frame
- *; a test keeps the two in step.
+ * localStorage key of the mirror: `{ preferences }`. The inline script in index.html
+ * reads the theme from it to paint every page in it before the first frame; a test keeps
+ * the two in step.
  */
 export const PREFERENCES_STORAGE_KEY = 'webnovel-hub.reader-preferences';
 
 interface Mirror {
-  userId: string;
   preferences: ReaderPreferences;
 }
 
@@ -38,19 +37,17 @@ function readStoredMirror(): Partial<Mirror> | null {
 }
 
 /**
- * The preferences this device last saw for the user: shown straight away while the
- * server's copy loads, so the reader never flashes the default look.
+ * The preferences as last saved: shown straight away while the library's copy loads, so
+ * the reader never flashes the default look.
  */
-export function readMirror(userId: string): ReaderPreferences | undefined {
+export function readMirror(): ReaderPreferences | undefined {
   const mirror = readStoredMirror();
-  if (mirror?.userId !== userId || typeof mirror.preferences !== 'object' || !mirror.preferences) {
-    return undefined;
-  }
+  if (typeof mirror?.preferences !== 'object' || !mirror.preferences) return undefined;
   // Written by an older version, it may lack a preference added since.
   return { ...READER_PREFERENCE_DEFAULTS, ...mirror.preferences };
 }
 
-/** The mirrored theme, whoever it belongs to: for painting before sign-in is known. */
+/** The mirrored theme: for painting before the preferences load. */
 export function mirroredTheme(): ThemePreference | null {
   const theme = readStoredMirror()?.preferences?.theme;
   return (THEME_PREFERENCES as readonly unknown[]).includes(theme)
@@ -58,11 +55,11 @@ export function mirroredTheme(): ThemePreference | null {
     : null;
 }
 
-export function writeMirror(userId: string, preferences: ReaderPreferences): void {
+export function writeMirror(preferences: ReaderPreferences): void {
   try {
-    localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify({ userId, preferences }));
+    localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify({ preferences }));
   } catch {
-    // Not mirrored; the server's copy still loads.
+    // Not mirrored; the library's copy still loads.
   }
 }
 
@@ -75,8 +72,8 @@ const isEmpty = (changes: PreferencesUpdate) => Object.keys(changes).length === 
 
 /**
  * Applies preference changes at once (to the query, so every view restyles) and saves them
- * shortly after the last one. Saves go one at a time, so the server ends with the
- * latest value. A failed save puts back what the server last confirmed. One per QueryClient.
+ * shortly after the last one. Saves go one at a time, so the library ends with the
+ * latest value. A failed save puts back what was last saved. One per QueryClient.
  */
 export class PreferenceSaver {
   status: SaveStatus = 'idle';
@@ -89,9 +86,9 @@ export class PreferenceSaver {
   private sending: PreferencesUpdate = {};
   private timer: ReturnType<typeof setTimeout> | undefined;
   private queue: Promise<void> = Promise.resolve();
-  /** The server's copy, as last seen: what a failed save goes back to. */
+  /** The library's copy, as last seen: what a failed save goes back to. */
   private confirmed: ReaderPreferences | undefined;
-  /** Bumped by `forget`, so nothing from a previous session lands in the next one. */
+  /** Bumped by `forget`, so nothing from before it lands after it. */
   private generation = 0;
   private readonly listeners = new Set<() => void>();
   private hideListener: (() => void) | undefined;
@@ -115,12 +112,12 @@ export class PreferenceSaver {
   }
 
   /**
-   * The server's copy with the changes not saved yet on top: what a fetch returns, so a
+   * The library's copy with the changes not saved yet on top: what a fetch returns, so a
    * refetch during a save doesn't undo what the reader just chose.
    */
-  received(server: ReaderPreferences): ReaderPreferences {
-    this.confirmed = server;
-    return { ...server, ...this.sending, ...this.pending };
+  received(saved: ReaderPreferences): ReaderPreferences {
+    this.confirmed = saved;
+    return { ...saved, ...this.sending, ...this.pending };
   }
 
   /** Sends the waiting changes now (the page is being hidden or closed). */
@@ -135,7 +132,7 @@ export class PreferenceSaver {
     return this.queue;
   }
 
-  /** Forgets everything, e.g. on sign-out: a waiting save is dropped, not sent. */
+  /** Forgets everything (a test ends): a waiting save is dropped, not sent. */
   forget(): void {
     this.generation += 1;
     clearTimeout(this.timer);
@@ -176,8 +173,8 @@ export class PreferenceSaver {
       });
       this.setStatus(this.timer === undefined && isEmpty(this.pending) ? 'saved' : 'saving');
     } catch (error) {
-      if (generation !== this.generation) return; // signed out meanwhile (a 401 does that)
-      // Back to what the server has: the changes waiting behind this one go too.
+      if (generation !== this.generation) return; // forgotten meanwhile
+      // Back to what was saved: the changes waiting behind this one go too.
       this.sending = {};
       this.pending = {};
       clearTimeout(this.timer);

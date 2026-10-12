@@ -18,7 +18,7 @@ export const readerPath = (novelId: string, chapter: number) => `/reader/${novel
 
 /**
  * Where Continue / Start reading goes: the last chapter read, from the
- * server's progress, or chapter 1.
+ * saved progress, or chapter 1.
  */
 export function readingTarget(novelId: string, library: LibraryState | null) {
   const last = library?.lastReadChapterNumber ?? null;

@@ -74,7 +74,7 @@ export function isFiltered(filters: LibraryFilters): boolean {
   );
 }
 
-/** The request for GET /api/library: only the filters in use. */
+/** The request for GET /library: only the filters in use. */
 export function toLibraryQuery(filters: LibraryFilters): LibraryQuery {
   return {
     ...(filters.status && { status: filters.status }),

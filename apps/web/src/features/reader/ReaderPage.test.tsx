@@ -163,7 +163,7 @@ describe('reader', () => {
     ).toBeVisible();
   });
 
-  it('rejects an address that is not a chapter number without asking the server', async () => {
+  it('rejects an address that is not a chapter number without asking the library', async () => {
     const api = signedIn();
     const id = addNovel(api, { chapters: 3 });
     renderApp(`/reader/${id}/first`);
@@ -179,7 +179,7 @@ describe('reader', () => {
 });
 
 describe('reader progress and library', () => {
-  it("moves the server's progress, which Continue then uses", async () => {
+  it('moves the saved progress, which Continue then uses', async () => {
     const api = signedIn();
     const id = addNovel(api, {
       title: 'The Wandering Inn',
