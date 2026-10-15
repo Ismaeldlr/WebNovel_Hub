@@ -56,9 +56,13 @@ export function tauriRenderer(): PageRenderer {
 export const openSiteWindow = (url: string, title: string): Promise<void> =>
   invoke('open_site_window', { url, title });
 
-/** A system notification, shown only while the window is out of sight. */
+/** A system notification, shown only while the window is out of sight (a test one always). */
 export const notify = (notice: Notice): void => {
-  void invoke('notify', { title: notice.title, body: notice.body });
+  void invoke('notify', {
+    title: notice.title,
+    body: notice.body,
+    always: notice.kind === 'test',
+  });
 };
 
 const toBase64 = async (file: Blob): Promise<string> => {

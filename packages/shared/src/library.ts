@@ -91,3 +91,16 @@ export interface LibraryStats {
 export interface NewChaptersCount {
   count: number;
 }
+
+/** A novel that made its own choice about notifications of its new chapters. */
+export interface NovelNotifyChoice {
+  novelId: string;
+  title: string;
+  /** True: always told; false: never. */
+  notify: boolean;
+}
+
+/** Response of GET /library/notify: the novels with their own choice, by title. */
+export interface NotifyChoicesResponse {
+  novels: NovelNotifyChoice[];
+}

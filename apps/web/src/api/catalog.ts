@@ -14,6 +14,7 @@ import type {
   LibraryTag,
   LibraryTagsResponse,
   NewChaptersCount,
+  NotifyChoicesResponse,
   NovelDetailsUpdate,
   NovelResponse,
   ReadChapterResponse,
@@ -129,6 +130,16 @@ export const libraryApi = {
         body: { isFavorite },
       })
     ).item,
+  /** The novel's own choice about notifications of its new chapters; null drops it. */
+  setNotify: async (novelId: string, notify: boolean | null) =>
+    (
+      await apiRequest<LibraryItemResponse>(`/library/${id(novelId)}/notify`, {
+        method: 'PATCH',
+        body: { notify },
+      })
+    ).item,
+  notifyChoices: async (signal?: AbortSignal) =>
+    (await apiRequest<NotifyChoicesResponse>('/library/notify', { signal })).novels,
 };
 
 export const searchApi = {

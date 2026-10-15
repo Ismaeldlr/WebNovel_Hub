@@ -251,6 +251,26 @@
   font-size: var(--text-sm);
 }
 
+/* A novel with its own notification choice: the bell, the title and the choice. */
+.notifyNovel {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.notifyNovel > svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--ink-faint);
+}
+
+.notifyNovel > svg.notifyOn {
+  color: var(--accent);
+}
+
 .accountStatus {
   display: inline-flex;
   align-items: center;

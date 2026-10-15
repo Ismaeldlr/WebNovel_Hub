@@ -18,7 +18,6 @@ import { RoyalRoadAdapter } from '../scraper/adapters/royal-road/index.js';
 import { StructureChanged } from '../scraper/errors.js';
 import type { JobRunner } from './runner.js';
 import { scheduleDueRun } from './scheduler.js';
-import { newChaptersNotice } from './notice.js';
 import { newChapters } from './update-check.js';
 
 let db: Database;
@@ -145,7 +144,20 @@ describe('a scheduled run', () => {
     expect((await novelRow(reading.id)).total_chapters).toBe(2);
     expect((await novelRow(broken.id)).update_failed).toBe(1);
     expect((await novelRow(dropped.id)).last_checked_at).toBeNull();
-    expect(notices).toEqual([{ title: 'New chapters', body: '1 new chapter of Novel 1.' }]);
+    expect(notices).toEqual([
+      {
+        kind: 'new-chapters',
+        title: 'New chapters',
+        body: '1 new chapter of Novel 1.',
+        novelId: reading.id,
+      },
+      {
+        kind: 'problems',
+        title: "Couldn't check for new chapters",
+        body: 'Novel 2: its page says what went wrong.',
+        novelId: broken.id,
+      },
+    ]);
 
     const { rows } = await db.query<{ errors: string }>(
       'SELECT errors FROM update_job_runs WHERE id = $1',
@@ -170,17 +182,75 @@ describe('a scheduled run', () => {
   });
 });
 
-describe('the new-chapters notice', () => {
-  it('names a single novel, and counts several', () => {
-    expect(newChaptersNotice([{ title: 'The Inn', count: 5 }]).body).toBe(
-      '5 new chapters of The Inn.',
+describe('what a scheduled run tells the reader', () => {
+  async function runScheduled() {
+    const jobId = await scheduleDueRun(db, { intervalHours: 6, maxRetries: 0 });
+    runner.wake();
+    return finishedJob(db, jobId!);
+  }
+  // As if the last run was long ago, so the next one is due and checks every novel.
+  const later = async () => {
+    await db.query(`UPDATE update_job_runs SET created_at = '2000-01-01T00:00:00.000Z'`);
+    await db.query(`UPDATE novels SET last_checked_at = '2000-01-01T00:00:00.000Z'`);
+  };
+
+  it("follows each novel's choice: muted ones stay quiet, asked-for ones are checked whatever their status", async () => {
+    const muted = await stored(1, 1, 'reading');
+    const asked = await stored(2, 1, 'on_hold');
+    await db.query('UPDATE library_entries SET notify = 0 WHERE novel_id = $1', [muted.id]);
+    await db.query('UPDATE library_entries SET notify = 1 WHERE novel_id = $1', [asked.id]);
+    serveNovel(site, 1, 2);
+    serveNovel(site, 2, 3);
+
+    expect(await runScheduled()).toMatchObject({ result: '{"novels_checked":2,"new_chapters":3}' });
+    expect(notices.map((notice) => notice.body)).toEqual(['2 new chapters of Novel 2.']);
+    // Both are NEW in the library, the muted one too.
+    const { rows } = await db.query<{ novel_id: string }>(
+      'SELECT DISTINCT novel_id FROM new_chapters ORDER BY novel_id',
     );
-    expect(
-      newChaptersNotice([
-        { title: 'A', count: 1 },
-        { title: 'B', count: 11 },
-      ]).body,
-    ).toBe('12 new chapters in 2 novels.');
+    expect(rows.map((row) => row.novel_id).sort()).toEqual([muted.id, asked.id].sort());
+  });
+
+  it('tells only about the novels picked, one notice each, counting the chapters not opened yet', async () => {
+    const picked = await stored(1, 1, 'reading');
+    await stored(2, 1, 'following');
+    await db.query('UPDATE library_entries SET notify = 1 WHERE novel_id = $1', [picked.id]);
+    await db.query(
+      `UPDATE reader_preferences SET notify_novels = 'picked', notify_each_novel = 1 WHERE id = 1`,
+    );
+    serveNovel(site, 1, 2);
+    serveNovel(site, 2, 2);
+    await runScheduled();
+    expect(notices).toEqual([
+      {
+        kind: 'new-chapters',
+        title: 'Novel 1',
+        body: '1 new chapter.',
+        novelId: picked.id,
+        tag: `novel:${picked.id}`,
+      },
+    ]);
+
+    // Another chapter before the first was opened: the novel's notice says 2.
+    serveNovel(site, 1, 3);
+    await later();
+    await runScheduled();
+    expect(notices.at(-1)).toMatchObject({ body: '2 new chapters.', tag: `novel:${picked.id}` });
+  });
+
+  it('tells about a broken check once, until the novel is checked fine again', async () => {
+    const broken = await stored(1, 1, 'reading');
+    await runScheduled();
+    await later();
+    await runScheduled();
+    const problems = () => notices.filter((notice) => notice.kind === 'problems');
+    expect(problems()).toHaveLength(1);
+    expect((await novelRow(broken.id)).update_failed).toBe(1);
+
+    serveNovel(site, 1, 1);
+    await later();
+    await runScheduled();
+    expect((await novelRow(broken.id)).update_failed).toBe(0);
   });
 });
 

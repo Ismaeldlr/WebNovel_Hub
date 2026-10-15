@@ -62,20 +62,6 @@ describe('Settings in the Windows app', () => {
     });
   });
 
-  it('turns new-chapter notifications off', async () => {
-    const api = fakeApi();
-    const { user } = await openSettings();
-    const updates = section('New chapters');
-    expect(
-      within(updates).getByRole('radio', { name: 'Tell me with a notification' }),
-    ).toBeChecked();
-
-    await user.click(within(updates).getByRole('radio', { name: "Don't notify me" }));
-    await waitFor(() => expect(api.preferenceSaves).toEqual([{ notifyNewChapters: false }]), {
-      timeout: 3000,
-    });
-  });
-
   it('shows the version and installs a newer one', async () => {
     fakeApi();
     app.updates.checkForUpdate.mockResolvedValueOnce(null).mockResolvedValueOnce('0.2.0');

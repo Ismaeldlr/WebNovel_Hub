@@ -12,7 +12,7 @@ import { Badge, ButtonLink, EmptyState, ErrorState, Spinner } from '../../compon
 import { formatDate, formatRelativeTime, plural } from '../../lib/format';
 import { usePageBar, usePageTitle, useUnderTopBar } from '../../lib/hooks';
 import { progress, readingTarget } from '../../lib/reading';
-import { FavoriteButton, StatusSelect } from '../library/LibraryControls';
+import { FavoriteButton, NotifyButton, StatusSelect } from '../library/LibraryControls';
 import { ChapterList } from './ChapterList';
 import { Description } from './Description';
 import styles from './NovelPage.module.css';
@@ -189,6 +189,15 @@ function NovelView({
                 isFavorite={library.isFavorite}
                 className={styles.action}
               />
+              {/* EPUB imports have no site to check for new chapters. */}
+              {updates.available && (
+                <NotifyButton
+                  novelId={novel.id}
+                  title={novel.title}
+                  library={library}
+                  className={styles.action}
+                />
+              )}
             </>
           )}
           <UpdateCheckButton state={updates} className={styles.action} />

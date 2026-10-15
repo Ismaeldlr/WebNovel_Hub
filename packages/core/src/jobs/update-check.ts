@@ -1,8 +1,8 @@
 // Update checks: the chapters a site added to the novels the reader follows. Two job types
 // share one path:
 //
-// - `update_check`, a scheduled run over every novel in Reading or Following, stalest
-//   first, one after another;
+// - `update_check`, a scheduled run over every novel in Reading or Following (and any
+//   novel the reader wants to be told about), stalest first, one after another;
 // - `manual_update_check`, one novel the reader asked about.
 //
 // The site's current chapter list is matched to the stored chapters by
@@ -14,10 +14,17 @@
 // on to the next novel and leaves the retry to the next run; a manual check is retried
 // like any job and flags the novel only when its last attempt fails. The run records the
 // novels checked, the chapters found and each failure; its status follows its job (a
-// trigger in the schema).
+// trigger in the schema). A scheduled run then tells the reader, as they chose, about the
+// new chapters and about novels whose check started failing.
 import { EPUB_SOURCE } from '@webnovel-hub/shared';
 import type { Queryable } from '../db/database.js';
 import { NOW } from '../db/sql.js';
+import {
+  CHECKED_ENTRIES,
+  novelsToAnnounce,
+  unseenNewChapters,
+} from '../repositories/notifications.js';
+import { findPreferences } from '../repositories/preferences.js';
 import type { Adapter, ChapterRef } from '../scraper/adapters/base.js';
 import {
   InvalidJob,
@@ -30,7 +37,7 @@ import {
 } from '../scraper/errors.js';
 import type { Handler, JobContext } from './context.js';
 import { insertChapters } from './ingestion.js';
-import { newChaptersNotice } from './notice.js';
+import { checkFailedNotice, newChaptersNotices, noticeStyle } from './notice.js';
 import { JobLost, willRetry } from './queue.js';
 
 /** How long one novel's chapter list may take before it counts as a network error. */
@@ -70,7 +77,7 @@ export const checkNovelsForUpdates: Handler = async (ctx) => {
   const { rows: novels } = await ctx.db.query<Novel>(
     `SELECT n.id, n.title, n.source, n.source_url
      FROM novels n JOIN library_entries e ON e.novel_id = n.id
-     WHERE n.source <> $1 AND e.status IN ('reading', 'following')
+     WHERE n.source <> $1 AND ${CHECKED_ENTRIES}
        AND (n.last_checked_at IS NULL OR n.last_checked_at < $2)
      ORDER BY n.last_checked_at NULLS FIRST, n.created_at`,
     [EPUB_SOURCE, started[0]?.started_at ?? null],
@@ -80,11 +87,16 @@ export const checkNovelsForUpdates: Handler = async (ctx) => {
     `Checking ${total.toLocaleString('en-US')} novel${total === 1 ? '' : 's'} for new chapters…`,
     0,
   );
-  const updated: { title: string; count: number }[] = [];
+  const updated: Announced[] = [];
+  const failing: Announced[] = [];
   for (const [index, novel] of novels.entries()) {
     const outcome = await checkNovel(ctx, novel, false);
-    if (outcome.error) await recordFailure(ctx, novel, outcome.error);
-    if (outcome.newChapters > 0) updated.push({ title: novel.title, count: outcome.newChapters });
+    if (outcome.error && (await recordFailure(ctx, novel, outcome.error))) {
+      failing.push({ id: novel.id, title: novel.title, count: 0 });
+    }
+    if (outcome.newChapters > 0) {
+      updated.push({ id: novel.id, title: novel.title, count: outcome.newChapters });
+    }
     const done = index + 1;
     await ctx.progress(
       `Checked ${done.toLocaleString('en-US')} / ${total.toLocaleString('en-US')}`,
@@ -95,12 +107,48 @@ export const checkNovelsForUpdates: Handler = async (ctx) => {
     'SELECT novels_checked, new_chapters_found FROM update_job_runs WHERE id = $1',
     [run],
   );
-  if (updated.length > 0) ctx.notify(newChaptersNotice(updated));
+  await announce(ctx, updated, failing);
   return {
     novels_checked: rows[0]?.novels_checked ?? 0,
     new_chapters: rows[0]?.new_chapters_found ?? 0,
   };
 };
+
+interface Announced {
+  id: string;
+  title: string;
+  count: number;
+}
+
+/**
+ * Tells the reader about the novels they want to hear about: their new chapters, and the
+ * novels whose check started failing.
+ */
+async function announce(ctx: JobContext, updated: Announced[], failing: Announced[]) {
+  if (updated.length === 0 && failing.length === 0) return;
+  const preferences = await findPreferences(ctx.db);
+  const style = noticeStyle(preferences);
+  const wanted = await novelsToAnnounce(
+    ctx.db,
+    [...updated, ...failing].map((novel) => novel.id),
+    preferences.notifyNovels,
+  );
+  let fresh = updated.filter((novel) => wanted.has(novel.id));
+  if (style.eachNovel) {
+    // A novel's notice replaces its last one, so it counts every chapter not opened yet.
+    const unseen = await unseenNewChapters(
+      ctx.db,
+      fresh.map((novel) => novel.id),
+    );
+    fresh = fresh.map((novel) => ({
+      ...novel,
+      count: Math.max(novel.count, unseen.get(novel.id) ?? 0),
+    }));
+  }
+  for (const notice of newChaptersNotices(fresh, style)) ctx.notify(notice);
+  const broken = failing.filter((novel) => wanted.has(novel.id));
+  if (broken.length > 0) ctx.notify(checkFailedNotice(broken, style));
+}
 
 /** `manual_update_check`: the one novel the reader asked about. */
 export const checkNovelForUpdates: Handler = async (ctx) => {
@@ -178,14 +226,21 @@ async function fetchChapterList(ctx: JobContext, novel: Novel) {
   }
 }
 
-/** Flags the novel and adds the failure to the run's log. */
-async function recordFailure(ctx: JobContext, novel: Novel, error: ScrapeError): Promise<void> {
+/**
+ * Flags the novel and adds the failure to the run's log. Resolves to true when the novel's
+ * checks were working until now.
+ */
+async function recordFailure(ctx: JobContext, novel: Novel, error: ScrapeError): Promise<boolean> {
   const message = error.updateMessage(ctx.registry.siteName(novel.source_url));
   ctx.logger.warn(
     { novel: novel.id, errorType: error.type, detail: error.detail.split('\n')[0] },
     'update check failed',
   );
-  await ctx.db.withTransaction(async (tx) => {
+  return ctx.db.withTransaction(async (tx) => {
+    const { rows: before } = await tx.query<{ update_failed: number }>(
+      'SELECT update_failed FROM novels WHERE id = $1',
+      [novel.id],
+    );
     const flagged = await tx.query(
       `UPDATE novels
        SET update_failed = 1, update_error_type = $2, update_error_message = $3,
@@ -193,13 +248,14 @@ async function recordFailure(ctx: JobContext, novel: Novel, error: ScrapeError):
        WHERE id = $1`,
       [novel.id, error.type, message],
     );
-    if (flagged.rowCount === 0) return; // deleted meanwhile
+    if (flagged.rowCount === 0) return false; // deleted meanwhile
     await logNovel(tx, ctx, 0, {
       novel_id: novel.id,
       title: novel.title,
       error_type: error.type,
       message,
     });
+    return before[0]?.update_failed === 0;
   });
 }
 
@@ -249,8 +305,8 @@ async function storeNewChapters(
       'SELECT number, source_url FROM chapters WHERE novel_id = $1',
       [novel.id],
     );
-    const { rows: entry } = await tx.query<{ status: string }>(
-      'SELECT status FROM library_entries WHERE novel_id = $1',
+    const { rows: entry } = await tx.query<{ status: string; notify: number | null }>(
+      'SELECT status, notify FROM library_entries WHERE novel_id = $1',
       [novel.id],
     );
     if (entry.length === 0) return 0; // deleted while the list was fetched
@@ -267,8 +323,10 @@ async function storeNewChapters(
         chapter.publishedAt ? [chapter.publishedAt.getTime()] : [],
       );
       latest = new Date(dates.length > 0 ? Math.max(...dates) : Date.now()).toISOString();
-      // New for the reader when they follow the novel, or asked about it themselves.
-      if (manual || entry[0]!.status === 'reading' || entry[0]!.status === 'following') {
+      // New for the reader when they follow the novel, asked about it themselves, or want
+      // to be told about it.
+      const { status, notify } = entry[0]!;
+      if (manual || status === 'reading' || status === 'following' || notify === 1) {
         await tx.query(
           `INSERT INTO new_chapters (chapter_id, novel_id)
            SELECT value, $1 FROM json_each($2) WHERE true

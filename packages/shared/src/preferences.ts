@@ -7,6 +7,13 @@ import type { ContentWidth, ThemePreference } from './enums.js';
 export const READER_FONT_FAMILIES = ['serif', 'sans', 'hyperlegible', 'system'] as const;
 export type ReaderFontFamily = (typeof READER_FONT_FAMILIES)[number];
 
+/**
+ * Whose new chapters are announced: every novel being read or followed, or only the novels
+ * the reader picked. A novel's own choice (LibraryState.notify) comes first either way.
+ */
+export const NOTIFY_NOVELS = ['following', 'picked'] as const;
+export type NotifyNovels = (typeof NOTIFY_NOVELS)[number];
+
 /** A user's preferences (the reader_preferences table). */
 export interface ReaderPreferences {
   /** The theme of every page, the reader included. */
@@ -27,6 +34,16 @@ export interface ReaderPreferences {
   wifiOnly: boolean;
   /** Whether new chapters found by the scheduled checks are announced. */
   notifyNewChapters: boolean;
+  /** Which novels' new chapters are announced, unless a novel chose for itself. */
+  notifyNovels: NotifyNovels;
+  /** One notification per novel with new chapters, rather than one for all of them. */
+  notifyEachNovel: boolean;
+  /** Whether notifications name the novels (off: only counts, for the lock screen). */
+  notifyShowTitles: boolean;
+  /** Whether a finished whole-novel download or a novel added from a site is announced. */
+  notifyDownloads: boolean;
+  /** Whether a check or download that failed is announced. */
+  notifyProblems: boolean;
   /**
    * Whether WTR Lab chapters whose AI translation needs an account are fetched in its
    * machine translation instead, while the app isn't signed in there.
@@ -47,6 +64,11 @@ export const READER_PREFERENCE_DEFAULTS: Readonly<ReaderPreferences> = {
   backgroundFetching: false,
   wifiOnly: false,
   notifyNewChapters: true,
+  notifyNovels: 'following',
+  notifyEachNovel: false,
+  notifyShowTitles: true,
+  notifyDownloads: true,
+  notifyProblems: true,
   wtrLabMachineTranslation: false,
 };
 
@@ -74,6 +96,11 @@ export const EDITABLE_PREFERENCES = [
   'backgroundFetching',
   'wifiOnly',
   'notifyNewChapters',
+  'notifyNovels',
+  'notifyEachNovel',
+  'notifyShowTitles',
+  'notifyDownloads',
+  'notifyProblems',
   'wtrLabMachineTranslation',
 ] as const;
 export type EditablePreference = (typeof EDITABLE_PREFERENCES)[number];

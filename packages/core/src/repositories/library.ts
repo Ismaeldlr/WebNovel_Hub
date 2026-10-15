@@ -5,10 +5,11 @@ import {
   type LibraryStats,
   type LibraryStatus,
   type LibraryTag,
+  type NovelNotifyChoice,
 } from '@webnovel-hub/shared';
 import type { Queryable } from '../db/database.js';
 import { queryValues } from '../db/query-values.js';
-import { parseJson } from '../db/values.js';
+import { bool, parseJson } from '../db/values.js';
 import {
   LIBRARY_STATE_COLUMNS,
   type LibraryStateRow,
@@ -147,10 +148,14 @@ export async function insertLibraryEntry(db: Queryable, novelId: string): Promis
 export async function updateLibraryEntry(
   db: Queryable,
   novelId: string,
-  change: { status: LibraryStatus } | { isFavorite: boolean },
+  change: { status: LibraryStatus } | { isFavorite: boolean } | { notify: boolean | null },
 ): Promise<boolean> {
   const [column, value] =
-    'status' in change ? ['status', change.status] : ['is_favorite', change.isFavorite];
+    'status' in change
+      ? ['status', change.status]
+      : 'isFavorite' in change
+        ? ['is_favorite', change.isFavorite]
+        : ['notify', change.notify];
   const { rowCount } = await db.query(
     `UPDATE library_entries SET ${column} = $2 WHERE novel_id = $1`,
     [novelId, value],
@@ -209,4 +214,15 @@ export async function newChaptersCount(db: Queryable): Promise<number> {
      WHERE u.seen_at IS NULL`,
   );
   return rows[0]?.count ?? 0;
+}
+
+/** The novels that made their own choice about notifications, by title. */
+export async function listNotifyChoices(db: Queryable): Promise<NovelNotifyChoice[]> {
+  const { rows } = await db.query<{ id: string; title: string; notify: number }>(
+    `SELECT n.id, n.title, e.notify
+     FROM library_entries e JOIN novels n ON n.id = e.novel_id
+     WHERE e.notify IS NOT NULL
+     ORDER BY n.title COLLATE NOCASE`,
+  );
+  return rows.map((row) => ({ novelId: row.id, title: row.title, notify: bool(row.notify) }));
 }

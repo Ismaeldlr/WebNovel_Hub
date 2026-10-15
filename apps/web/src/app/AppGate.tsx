@@ -3,6 +3,7 @@ import { Outlet } from 'react-router';
 import { getSources } from '../api/catalog';
 import { Splash } from '../components/Splash';
 import { ErrorState } from '../components/ui';
+import { useNotificationTaps } from '../features/notifications/useNotificationTaps';
 import { ThemeFromPreferences } from '../features/preferences/ThemeFromPreferences';
 import { usePhoneBackButton, useVisitedPages } from './back';
 import { queryKeys } from './queryClient';
@@ -15,6 +16,7 @@ import { queryKeys } from './queryClient';
 export function AppGate() {
   useVisitedPages();
   usePhoneBackButton();
+  useNotificationTaps();
   const open = useQuery({
     queryKey: queryKeys.open,
     queryFn: ({ signal }) => getSources(signal),

@@ -16,8 +16,9 @@ import {
 } from '../preferences/usePreferences';
 import { SectionHeading } from './SectionHeading';
 import styles from './SettingsPage.module.css';
-import { AppSection, BackgroundSection, NotifyChoice } from './AppSettings';
+import { AppSection, BackgroundSection } from './AppSettings';
 import { BackupSection } from './BackupSection';
+import { NotificationSettings } from './NotificationSettings';
 import { WtrLabSection } from './WtrLabSection';
 import { SETTINGS_GROUPS, type SettingsGroup, settingsPath, useAppVersion } from './settingsGroups';
 import { useWtrLabAccount } from './wtrLabAccount';
@@ -147,9 +148,16 @@ function GroupValue({
     }
     case 'downloads': {
       const ahead = preferences.prefetchCount;
-      const downloads = ahead === 0 ? 'No chapters ahead' : `${plural(ahead, 'chapter')} ahead`;
-      if (appKind === 'browser') return downloads;
-      return `${downloads} · Notifications ${preferences.notifyNewChapters ? 'on' : 'off'}`;
+      return ahead === 0 ? 'No chapters ahead' : `${plural(ahead, 'chapter')} ahead`;
+    }
+    case 'notifications': {
+      const kinds = [
+        preferences.notifyNewChapters &&
+          (preferences.notifyNovels === 'picked' ? 'Picked novels' : 'New chapters'),
+        preferences.notifyDownloads && 'Downloads',
+        preferences.notifyProblems && 'Problems',
+      ].filter(Boolean);
+      return kinds.length > 0 ? kinds.join(' · ') : 'Off';
     }
     case 'accounts': {
       const signedIn = account.data?.signedIn;
@@ -209,16 +217,12 @@ function GroupContent({
           </Card>
           <Card as="section" aria-labelledby="settings-updates" className={styles.section}>
             <SectionHeading id="settings-updates" title="New chapters">
-              Novels you&apos;re reading or following are checked every few hours.
+              Novels you&apos;re reading or following are checked every few hours, and any novel you
+              asked to be told about.
             </SectionHeading>
-            {appKind !== 'browser' && (
-              <NotifyChoice
-                enabled={preferences.notifyNewChapters}
-                onChange={(notifyNewChapters) => update({ notifyNewChapters })}
-              />
-            )}
             <Notice variant="inline" icon={<BellRing aria-hidden="true" />}>
-              Every check is listed in <Link to="/updates">Update Jobs</Link>.
+              Every check is listed in <Link to="/updates">Update Jobs</Link>. What you&apos;re told
+              about is in <Link to={settingsPath('notifications')}>Notifications</Link>.
             </Notice>
           </Card>
           {appKind !== 'browser' && (
@@ -226,6 +230,8 @@ function GroupContent({
           )}
         </>
       );
+    case 'notifications':
+      return <NotificationSettings preferences={preferences} onChange={update} />;
     case 'accounts':
       return <WtrLabSection preferences={preferences} onChange={update} />;
     case 'backup':

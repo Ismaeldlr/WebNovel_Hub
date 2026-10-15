@@ -14,6 +14,8 @@ export interface AppUpdates {
 export interface AndroidShell {
   /** Whether notifications may show, asking the reader the first time (Android 13+). */
   allowNotifications(): Promise<boolean>;
+  /** Whether notifications may show, without asking: `prompt` until the reader answers. */
+  notificationPermission(): Promise<'granted' | 'denied' | 'prompt'>;
   /** Whether Android may hold the app back in the background to save battery. */
   batteryRestricted(): Promise<boolean>;
   /** Opens Android's prompt to let the app run in the background without battery limits. */
@@ -58,7 +60,13 @@ export interface AppPlatform {
    * with the rendered pages. Android resolves once the reader closes it, Windows at once.
    */
   openSiteWindow?: (url: string, title: string) => Promise<void>;
+  /** Shows a notification while the app is out of sight (a `test` one always). */
   notify?: (notice: Notice) => void;
+  /**
+   * Calls `open` with the novel of each notification the reader taps (Android). Returns a
+   * function that stops it.
+   */
+  onNotificationTap?: (open: (novelId: string) => void) => () => void;
   /** Saves a file where the reader chooses; false when the reader cancels. */
   saveFile?: (file: Blob, fileName: string) => Promise<boolean>;
   updates?: AppUpdates;
@@ -110,6 +118,7 @@ async function androidPlatform(): Promise<AppPlatform> {
     renderer: capacitor.capacitorRenderer(),
     openSiteWindow: capacitor.openSiteWindow,
     notify: capacitor.notify,
+    onNotificationTap: capacitor.onNotificationTap,
     saveFile: capacitor.saveFile,
     backups: capacitor.backups,
     updates: {
@@ -119,6 +128,7 @@ async function androidPlatform(): Promise<AppPlatform> {
     },
     android: {
       allowNotifications: capacitor.allowNotifications,
+      notificationPermission: capacitor.notificationPermission,
       batteryRestricted: capacitor.batteryRestricted,
       askBatteryExemption: capacitor.askBatteryExemption,
       onBackButton: capacitor.onBackButton,

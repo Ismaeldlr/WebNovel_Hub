@@ -2,6 +2,7 @@ import type { CheckList } from './background/checks.js';
 import { buildCheckList } from './background/list.js';
 import { type LibrarySummary, inspectBackup, summarizeLibrary, writeBackup } from './db/backup.js';
 import { type Database, type SqlDriver, createDatabase } from './db/database.js';
+import { wantsNotice } from './jobs/notice.js';
 import { type QueueStatus, queueStatus } from './jobs/queue.js';
 import { JobRunner } from './jobs/runner.js';
 import { type Logger, silentLogger } from './logger.js';
@@ -40,8 +41,8 @@ export interface CoreOptions {
   /** Milliseconds between two requests to one site, unless its adapter asks for more. */
   requestDelay?: number;
   /**
-   * Shows a system notification (new chapters found by a scheduled check), unless the
-   * reader turned those off.
+   * Shows a system notification (new chapters found by a scheduled check, a finished
+   * download, a problem), unless the reader turned that kind off.
    */
   notify?: (notice: Notice) => void;
 }
@@ -84,7 +85,7 @@ export async function createCore(options: CoreOptions): Promise<Core> {
     ((notice: Notice) => {
       findPreferences(db).then(
         (preferences) => {
-          if (preferences.notifyNewChapters) options.notify!(notice);
+          if (wantsNotice(preferences, notice.kind)) options.notify!(notice);
         },
         (error: unknown) => logger.warn({ err: error }, 'could not read the notification setting'),
       );

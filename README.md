@@ -58,6 +58,9 @@ version is out and opens its download.
   automatically (you choose how many). **Fetch all chapters** downloads a whole novel.
 - **New chapters.** The app checks the novels you're reading for new chapters every few
   hours, and can notify you. You can also check any novel by hand.
+- **Notifications your way.** Choose what you're told about (new chapters, finished
+  downloads, problems), for every novel you follow or only the ones you pick with the bell
+  on a novel's page, in one notification or one per novel, with or without titles.
 - **Export to EPUB.** Save a downloaded novel as an EPUB file for any e-book reader.
 - **Backup and restore.** Save your whole library (novels, saved chapters, progress and
   settings) to one `.whub` file from Settings, and restore it on another computer or phone.

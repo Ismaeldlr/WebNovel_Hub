@@ -12,6 +12,7 @@ import {
   LIBRARY_PAGE_LIMITS,
   LIBRARY_SORTS,
   LIBRARY_STATUSES,
+  NOTIFY_NOVELS,
   NOVEL_DETAIL_LIMITS,
   READER_FONT_FAMILIES,
   READER_PREFERENCE_LIMITS,
@@ -110,6 +111,12 @@ const statusBody = z.object(
 const favoriteBody = z.object(
   { isFavorite: z.boolean({ error: 'isFavorite must be true or false.' }) },
   { error: 'isFavorite must be true or false.' },
+);
+
+const NOTIFY_MESSAGE = 'notify must be true, false or null (as the settings say).';
+const notifyBody = z.object(
+  { notify: z.boolean({ error: NOTIFY_MESSAGE }).nullable() },
+  { error: NOTIFY_MESSAGE },
 );
 
 // --- Novels ----------------------------------------------------------------------------------
@@ -373,6 +380,21 @@ const preferencesBody = z
       notifyNewChapters: z
         .boolean({ error: 'New-chapter notifications are on (true) or off (false).' })
         .optional(),
+      notifyNovels: z
+        .enum(NOTIFY_NOVELS, { error: 'The novels to notify about are following or picked.' })
+        .optional(),
+      notifyEachNovel: z
+        .boolean({ error: 'A notification per novel is on (true) or off (false).' })
+        .optional(),
+      notifyShowTitles: z
+        .boolean({ error: 'Titles in notifications are on (true) or off (false).' })
+        .optional(),
+      notifyDownloads: z
+        .boolean({ error: 'Download notifications are on (true) or off (false).' })
+        .optional(),
+      notifyProblems: z
+        .boolean({ error: 'Problem notifications are on (true) or off (false).' })
+        .optional(),
       wtrLabMachineTranslation: z
         .boolean({ error: 'WTR Lab machine translation is on (true) or off (false).' })
         .optional(),
@@ -453,6 +475,11 @@ export function createRoutes(s: Services): Route[] {
     },
     {
       method: 'GET',
+      path: '/library/notify',
+      handle: async () => ok({ novels: await s.library.notifyChoices() }),
+    },
+    {
+      method: 'GET',
       path: '/library/new-chapters-count',
       handle: async () => ok({ count: await s.library.newChaptersCount() }),
     },
@@ -478,6 +505,14 @@ export function createRoutes(s: Services): Route[] {
       async handle(request) {
         const { isFavorite } = parseBody(favoriteBody, request.body);
         return ok({ item: await s.library.setFavorite(novelId(request), isFavorite) });
+      },
+    },
+    {
+      method: 'PATCH',
+      path: '/library/:id/notify',
+      async handle(request) {
+        const { notify } = parseBody(notifyBody, request.body);
+        return ok({ item: await s.library.setNotify(novelId(request), notify) });
       },
     },
 

@@ -262,6 +262,7 @@ export function addNovel(api: FakeApi, options: NovelOptions = {}): string {
       lastReadChapterNumber: null,
       furthestChapterNumber: null,
       newChapterCount: options.newChapters?.length ?? 0,
+      notify: null,
       addedAt: new Date(Date.UTC(2026, 8, 1, 0, counter)).toISOString(),
       lastReadAt: null,
       ...options.library,
@@ -587,6 +588,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
           'chapters',
           'status',
           'favorite',
+          'notify',
           'url',
           'epub',
           'fetch',
@@ -783,6 +785,23 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
         if (!api.library.delete(id)) return notFound("This novel isn't in your library.");
         api.novels.delete(id);
         return reply(200, null);
+      case 'GET /library/notify':
+        return reply(200, {
+          novels: [...api.library.entries()]
+            .filter(([, entry]) => entry.notify !== null)
+            .map(([novelId, entry]) => ({
+              novelId,
+              title: api.novels.get(novelId)?.novel.title ?? '',
+              notify: entry.notify,
+            }))
+            .sort((a, b) => a.title.localeCompare(b.title)),
+        });
+      case 'PATCH /library/:id/notify': {
+        const entry = api.library.get(id);
+        if (!entry) return notFound("This novel isn't in your library.");
+        entry.notify = typeof body.notify === 'boolean' ? body.notify : null;
+        return reply(200, { item: item(id) });
+      }
       case 'PATCH /library/:id/status':
       case 'PATCH /library/:id/favorite': {
         const entry = api.library.get(id);

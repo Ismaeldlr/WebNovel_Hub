@@ -26,16 +26,18 @@ function memoryStore(): KeyValueStore & { values: Map<string, string> } {
   };
 }
 
-const novel = (id: number, chapters: number) => ({
+const novel = (id: number, chapters: number, notify = true) => ({
   id: `n${id}`,
   title: `Novel ${id}`,
   url: novelUrl(id),
   chapters,
+  notify,
 });
 
 const list = (novels: CheckList['novels'], changes: Partial<CheckList> = {}): CheckList => ({
   enabled: true,
   notify: true,
+  style: { eachNovel: false, showTitles: true },
   intervalHours: 6,
   lastCheckedAt: new Date(START - 7 * HOUR).toISOString(),
   novels,
@@ -76,7 +78,14 @@ describe('checking while the app is closed', () => {
       checked: 2,
       found: { n1: { title: 'Novel 1', count: 2 } },
     });
-    expect(notices).toEqual([{ title: 'New chapters', body: '2 new chapters of Novel 1.' }]);
+    expect(notices).toEqual([
+      {
+        kind: 'new-chapters',
+        title: 'New chapters',
+        body: '2 new chapters of Novel 1.',
+        novelId: 'n1',
+      },
+    ]);
 
     // Not due again until the interval has passed; then the same count isn't news.
     clock += HOUR;
@@ -130,6 +139,57 @@ describe('checking while the app is closed', () => {
     clock += 7 * HOUR;
     expect(await run()).toMatchObject({ found: { n2: { count: 1 } } });
   });
+
+  it('announces only the novels the reader wants, one notice each when they choose so', async () => {
+    serveNovel(site, 1, 5);
+    serveNovel(site, 2, 4);
+    serveNovel(site, 3, 4);
+    const style = { eachNovel: true, showTitles: true };
+    saveCheckList(store, list([novel(1, 3), novel(2, 3), novel(3, 3, false)], { style }));
+    await run();
+    expect(notices).toEqual([
+      {
+        kind: 'new-chapters',
+        title: 'Novel 1',
+        body: '2 new chapters.',
+        novelId: 'n1',
+        tag: 'novel:n1',
+      },
+      {
+        kind: 'new-chapters',
+        title: 'Novel 2',
+        body: '1 new chapter.',
+        novelId: 'n2',
+        tag: 'novel:n2',
+      },
+    ]);
+
+    // A novel's notice counts everything found since the app last ran: it replaces the last.
+    serveNovel(site, 1, 6);
+    clock += 7 * HOUR;
+    notices = [];
+    await run();
+    expect(notices).toEqual([
+      {
+        kind: 'new-chapters',
+        title: 'Novel 1',
+        body: '3 new chapters.',
+        novelId: 'n1',
+        tag: 'novel:n1',
+      },
+    ]);
+  });
+
+  it('keeps titles off the notification when the reader asks', async () => {
+    serveNovel(site, 1, 5);
+    serveNovel(site, 2, 4);
+    const style = { eachNovel: true, showTitles: false };
+    saveCheckList(store, list([novel(1, 3), novel(2, 3)], { style }));
+    await run();
+    expect(notices).toEqual([
+      { kind: 'new-chapters', title: 'New chapters', body: '3 new chapters in 2 novels.' },
+    ]);
+  });
 });
 
 describe('the list the app leaves', () => {
@@ -142,6 +202,7 @@ describe('the list the app leaves', () => {
   afterEach(() => db.close());
 
   it('holds the novels being read or followed, with their chapter counts and the settings', async () => {
+    await db.query(`UPDATE reader_preferences SET notify_each_novel = 1 WHERE id = 1`);
     const reading = await insertNovel(db, { title: 'Reading', chapters: 4 });
     const following = await insertNovel(db, { title: 'Following', chapters: 2 });
     const dropped = await insertNovel(db, { title: 'Dropped', chapters: 1 });
@@ -160,12 +221,46 @@ describe('the list the app leaves', () => {
     expect(checks).toMatchObject({
       enabled: true,
       notify: true,
+      style: { eachNovel: true, showTitles: true },
       intervalHours: 6,
       lastCheckedAt: null,
     });
-    expect(checks.novels.map((n) => [n.title, n.chapters]).sort()).toEqual([
-      ['Following', 2],
-      ['Reading', 4],
+    expect(checks.novels.map((n) => [n.title, n.chapters, n.notify]).sort()).toEqual([
+      ['Following', 2, true],
+      ['Reading', 4, true],
+    ]);
+  });
+
+  it("follows each novel's own choice, and the novels the reader picked", async () => {
+    const muted = await insertNovel(db, { title: 'Muted', chapters: 1 });
+    const asked = await insertNovel(db, { title: 'Asked', chapters: 1 });
+    const plain = await insertNovel(db, { title: 'Plain', chapters: 1 });
+    await db.query(
+      `UPDATE library_entries SET status = 'reading', notify = 0 WHERE novel_id = $1`,
+      [muted.id],
+    );
+    await db.query(
+      `UPDATE library_entries SET status = 'dropped', notify = 1 WHERE novel_id = $1`,
+      [asked.id],
+    );
+    await db.query(`UPDATE library_entries SET status = 'following' WHERE novel_id = $1`, [
+      plain.id,
+    ]);
+    const shown = async () =>
+      (await buildCheckList(db)).novels.map((n) => [n.title, n.notify]).sort();
+
+    // A dropped novel the reader asked about is checked too; a muted one stays quiet.
+    expect(await shown()).toEqual([
+      ['Asked', true],
+      ['Muted', false],
+      ['Plain', true],
+    ]);
+    // Only picked novels: the rest are checked, but quietly.
+    await db.query(`UPDATE reader_preferences SET notify_novels = 'picked' WHERE id = 1`);
+    expect(await shown()).toEqual([
+      ['Asked', true],
+      ['Muted', false],
+      ['Plain', false],
     ]);
   });
 });

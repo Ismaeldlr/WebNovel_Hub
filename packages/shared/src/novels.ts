@@ -12,6 +12,12 @@ export interface LibraryState {
   furthestChapterNumber: number | null;
   /** Chapters found by update checks that the user hasn't opened. */
   newChapterCount: number;
+  /**
+   * The novel's own choice about notifications of its new chapters: true always (it is
+   * then checked whatever its status), false never, null as the preferences say
+   * (ReaderPreferences.notifyNovels).
+   */
+  notify: boolean | null;
   addedAt: string;
   lastReadAt: string | null;
 }

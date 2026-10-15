@@ -9,3 +9,4 @@ export {
   saveCheckList,
   takeInbox,
 } from './checks.js';
+export { noticeNumber } from '../jobs/notice.js';
