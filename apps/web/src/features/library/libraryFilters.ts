@@ -19,6 +19,11 @@ export interface LibraryFilters {
   unread: boolean;
   /** One tag, as the novels spell it; matched ignoring case. */
   tag: string | null;
+  /**
+   * The shelf shown (its id, or `hidden`), or null for the whole library. A view rather
+   * than a filter: clearing the filters keeps it.
+   */
+  shelf: string | null;
   sort: LibrarySort;
   q: string;
 }
@@ -35,6 +40,8 @@ export const SORT_LABELS: Record<LibrarySort, string> = {
 export const LIBRARY_FILTERS_KEY = 'webnovel-hub.library-filters';
 
 const MAX_TAG_LENGTH = NOVEL_DETAIL_LIMITS.tag;
+/** A shelf's id (a UUID) or `hidden`. */
+const SHELF_PARAM = /^(hidden|[0-9a-f-]{36})$/i;
 
 const isStatus = (value: string | null): value is LibraryStatus =>
   (LIBRARY_STATUSES as readonly (string | null)[]).includes(value);
@@ -47,12 +54,14 @@ export function parseFilters(params: URLSearchParams): LibraryFilters {
   const source = params.get('source');
   const sort = params.get('sort');
   const tag = (params.get('tag') ?? '').trim();
+  const shelf = params.get('shelf');
   return {
     status: isStatus(status) ? status : null,
     source: source !== null && SOURCE_KEY_PATTERN.test(source) ? source : null,
     favorite: params.get('favorite') === 'true',
     unread: params.get('unread') === 'true',
     tag: tag !== '' && tag.length <= MAX_TAG_LENGTH ? tag : null,
+    shelf: shelf !== null && SHELF_PARAM.test(shelf) ? shelf : null,
     sort: isSort(sort) ? sort : DEFAULT_LIBRARY_SORT,
     q: (params.get('q') ?? '').trim(),
   };
@@ -66,12 +75,13 @@ export function filtersToParams(filters: LibraryFilters): URLSearchParams {
   if (filters.favorite) params.set('favorite', 'true');
   if (filters.unread) params.set('unread', 'true');
   if (filters.tag) params.set('tag', filters.tag);
+  if (filters.shelf) params.set('shelf', filters.shelf);
   if (filters.sort !== DEFAULT_LIBRARY_SORT) params.set('sort', filters.sort);
   if (filters.q) params.set('q', filters.q);
   return params;
 }
 
-/** Whether anything narrows the list; a sort alone doesn't. */
+/** Whether anything narrows the list within the shelf shown; a sort alone doesn't. */
 export function isFiltered(filters: LibraryFilters): boolean {
   return (
     filters.status !== null ||
@@ -91,6 +101,7 @@ export function toLibraryQuery(filters: LibraryFilters): LibraryQuery {
     ...(filters.favorite && { favorite: true }),
     ...(filters.unread && { unread: true }),
     ...(filters.tag && { tag: filters.tag }),
+    ...(filters.shelf && { shelf: filters.shelf }),
     sort: filters.sort,
     ...(filters.q && { q: filters.q }),
   };
@@ -156,7 +167,7 @@ export function useLibraryFilters() {
     filters,
     restore,
     update,
-    /** Clears the filters and the search; the sort stays. */
+    /** Clears the filters and the search; the sort and the shelf stay. */
     clear: () =>
       update({ status: null, source: null, favorite: false, unread: false, tag: null, q: '' }),
   };

@@ -14,12 +14,15 @@ import type {
   LibraryTag,
   LibraryTagsResponse,
   NewChaptersCount,
+  NotifyChoicesResponse,
   NovelDetailsUpdate,
   NovelResponse,
   ReadChapterResponse,
   ReaderChapterResponse,
   RecentImportsResponse,
   SearchResponse,
+  ShelfResponse,
+  ShelvesResponse,
   SourceAccountResponse,
   SourcesResponse,
   StartUpdateCheckResponse,
@@ -129,6 +132,49 @@ export const libraryApi = {
         body: { isFavorite },
       })
     ).item,
+  /** The novel's own choice about notifications of its new chapters; null drops it. */
+  setNotify: async (novelId: string, notify: boolean | null) =>
+    (
+      await apiRequest<LibraryItemResponse>(`/library/${id(novelId)}/notify`, {
+        method: 'PATCH',
+        body: { notify },
+      })
+    ).item,
+  notifyChoices: async (signal?: AbortSignal) =>
+    (await apiRequest<NotifyChoicesResponse>('/library/notify', { signal })).novels,
+  setHidden: async (novelId: string, hidden: boolean) =>
+    (
+      await apiRequest<LibraryItemResponse>(`/library/${id(novelId)}/hidden`, {
+        method: 'PATCH',
+        body: { hidden },
+      })
+    ).item,
+  /** Puts the novel on exactly these shelves. */
+  setShelves: async (novelId: string, shelfIds: string[]) =>
+    (
+      await apiRequest<LibraryItemResponse>(`/library/${id(novelId)}/shelves`, {
+        method: 'PUT',
+        body: { shelfIds },
+      })
+    ).item,
+};
+
+/** The reader's shelves, in their order. */
+export const shelvesApi = {
+  list: async (signal?: AbortSignal) =>
+    (await apiRequest<ShelvesResponse>('/shelves', { signal })).shelves,
+  create: async (name: string) =>
+    (await apiRequest<ShelfResponse>('/shelves', { method: 'POST', body: { name } })).shelf,
+  rename: async (shelfId: string, name: string) =>
+    (
+      await apiRequest<ShelfResponse>(`/shelves/${id(shelfId)}`, {
+        method: 'PATCH',
+        body: { name },
+      })
+    ).shelf,
+  remove: (shelfId: string) => apiRequest<null>(`/shelves/${id(shelfId)}`, { method: 'DELETE' }),
+  reorder: async (ids: string[]) =>
+    (await apiRequest<ShelvesResponse>('/shelves/order', { method: 'PUT', body: { ids } })).shelves,
 };
 
 export const searchApi = {

@@ -4,7 +4,7 @@
 // goes out of sight; the task checks their chapter lists when a check is due and notes
 // what it found in an inbox there; the app takes the inbox when it next opens and runs
 // its own checks for those novels, which store the chapters the usual way.
-import { newChaptersNotice } from '../jobs/notice.js';
+import { type NoticeStyle, newChaptersNotices } from '../jobs/notice.js';
 import { type Registry, defaultRegistry } from '../scraper/adapters/registry.js';
 import type { HttpClient, Notice } from '../scraper/http.js';
 import { HostThrottle, SourceSession } from '../scraper/session.js';
@@ -15,11 +15,20 @@ export interface CheckList {
   enabled: boolean;
   /** New chapters are announced with a notification. */
   notify: boolean;
+  /**
+   * One notification per novel or one for all; with titles or without. Missing from a
+   * list an older version of the app left: one with titles.
+   */
+  style?: NoticeStyle;
   intervalHours: number;
   /** When the app itself last ran a scheduled check (ISO 8601), or null. */
   lastCheckedAt: string | null;
-  /** Stalest first: when a run runs out of time, the rest wait for the next. */
-  novels: { id: string; title: string; url: string; chapters: number }[];
+  /**
+   * Stalest first: when a run runs out of time, the rest wait for the next. `notify`: its
+   * new chapters are announced (the reader's choice for it, or for its status); missing
+   * from a list an older version left, where every novel's were.
+   */
+  novels: { id: string; title: string; url: string; chapters: number; notify?: boolean }[];
 }
 
 /** Strings kept between runs (Android: the app's shared preferences). */
@@ -108,6 +117,7 @@ export async function runBackgroundChecks(
   const seen = read<Record<string, number>>(store, SEEN, {});
   const inbox = read<Inbox>(store, INBOX, {});
   const found: Inbox = {};
+  const announced = new Set<string>();
   const started = now();
   let checked = 0;
   let next = resume;
@@ -127,6 +137,7 @@ export async function runBackgroundChecks(
         found[novel.id] = { title: novel.title, count };
         inbox[novel.id] = { title: novel.title, count: (inbox[novel.id]?.count ?? 0) + count };
         seen[novel.id] = chapters.length;
+        if (novel.notify !== false) announced.add(novel.id);
       }
     } catch {
       // The app's own check reports what went wrong; this one only looks.
@@ -142,8 +153,12 @@ export async function runBackgroundChecks(
     store.set(RESUME, '0');
     store.set(CHECKED_AT, String(now()));
   }
-  if (list.notify && Object.keys(found).length > 0) {
-    options.notify?.(newChaptersNotice(Object.values(found)));
+  if (list.notify) {
+    const style = list.style ?? { eachNovel: false, showTitles: true };
+    // A novel's own notice replaces its last one, so it counts all found since the app ran.
+    const counts = style.eachNovel ? inbox : found;
+    const updated = [...announced].map((id) => ({ id, ...counts[id]! }));
+    for (const notice of newChaptersNotices(updated, style)) options.notify?.(notice);
   }
   return { due: true, checked, found };
 }

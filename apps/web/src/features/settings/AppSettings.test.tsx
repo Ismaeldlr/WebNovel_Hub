@@ -15,6 +15,7 @@ const app = vi.hoisted(() => ({
     allowNotifications: vi.fn(() => Promise.resolve(true)),
     batteryRestricted: vi.fn(() => Promise.resolve(false)),
     askBatteryExemption: vi.fn(() => Promise.resolve()),
+    onBackButton: vi.fn(() => () => undefined),
   },
 }));
 
@@ -57,20 +58,6 @@ describe('Settings in the Windows app', () => {
       within(background).getByRole('radio', { name: 'Keep fetching in the background' }),
     );
     await waitFor(() => expect(api.preferenceSaves).toEqual([{ backgroundFetching: true }]), {
-      timeout: 3000,
-    });
-  });
-
-  it('turns new-chapter notifications off', async () => {
-    const api = fakeApi();
-    const { user } = await openSettings();
-    const updates = section('New chapters');
-    expect(
-      within(updates).getByRole('radio', { name: 'Tell me with a notification' }),
-    ).toBeChecked();
-
-    await user.click(within(updates).getByRole('radio', { name: "Don't notify me" }));
-    await waitFor(() => expect(api.preferenceSaves).toEqual([{ notifyNewChapters: false }]), {
       timeout: 3000,
     });
   });

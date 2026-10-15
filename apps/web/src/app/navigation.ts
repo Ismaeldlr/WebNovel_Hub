@@ -57,6 +57,10 @@ export const HOME_PATH = '/library';
 export const libraryTagPath = (tag: string) =>
   `/library?${new URLSearchParams({ tag }).toString()}`;
 
+/** The library showing one shelf (its id, or `hidden`). */
+export const libraryShelfPath = (shelf: string) =>
+  `/library?${new URLSearchParams({ shelf }).toString()}`;
+
 /** The library, searching for `text` (the global search's "See all results"). */
 export const librarySearchPath = (text: string) =>
   text ? `/library?${new URLSearchParams({ q: text }).toString()}` : '/library';

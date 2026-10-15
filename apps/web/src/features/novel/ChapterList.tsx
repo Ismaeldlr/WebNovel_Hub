@@ -30,7 +30,10 @@ interface ChapterListViewProps extends ChapterListProps {
   state: ChapterListState;
   /** The chapter being read: marked, and scrolled into view. */
   current?: number;
-  /** Called as a chapter is opened (the reader closes its list). */
+  /**
+   * Called as a chapter is opened: the reader's list closes, and the chapter takes the
+   * open one's place (back still goes to the novel).
+   */
   onOpen?: () => void;
 }
 
@@ -180,6 +183,7 @@ function ChapterRow({ novelId, chapter, current, onOpen }: ChapterRowProps) {
     <li className={styles.row} data-read={chapter.isRead || undefined}>
       <Link
         to={readerPath(novelId, chapter.number)}
+        replace={onOpen !== undefined}
         className={styles.link}
         aria-current={current ? 'page' : undefined}
         onClick={onOpen}

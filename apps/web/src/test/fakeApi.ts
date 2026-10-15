@@ -65,6 +65,8 @@ export interface FakeApi {
   novels: Map<string, { novel: Novel; chapters: ChapterSummary[] }>;
   /** The library, by novel id. */
   library: Map<string, LibraryState>;
+  /** The reader's shelves, in their order (`novels` is counted on each request). */
+  shelves: { id: string; name: string }[];
   jobs: Map<string, IngestionJob>;
   /**
    * How the worker moves an import along: each poll of GET /jobs/:id applies the next
@@ -262,6 +264,9 @@ export function addNovel(api: FakeApi, options: NovelOptions = {}): string {
       lastReadChapterNumber: null,
       furthestChapterNumber: null,
       newChapterCount: options.newChapters?.length ?? 0,
+      notify: null,
+      hidden: false,
+      shelfIds: [],
       addedAt: new Date(Date.UTC(2026, 8, 1, 0, counter)).toISOString(),
       lastReadAt: null,
       ...options.library,
@@ -294,6 +299,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
     fullFetches: new Map(),
     fullFetchScript: [],
     preferences: { ...READER_PREFERENCE_DEFAULTS },
+    shelves: [],
     preferenceSaves: [],
     wtrLabSignedIn: null,
     preferenceSaveError: null,
@@ -314,6 +320,12 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
       headers: { 'Content-Type': 'application/json' },
     });
   const notFound = (message = 'Not found.') => reply(404, null, message);
+  const shelfOf = (shelf: { id: string; name: string }) => ({
+    ...shelf,
+    novels: [...api.library.values()].filter(
+      (entry) => !entry.hidden && entry.shelfIds.includes(shelf.id),
+    ).length,
+  });
   const bad = (message: string) => reply(400, null, message);
 
   const item = (id: string): LibraryItem | null => {
@@ -587,6 +599,10 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
           'chapters',
           'status',
           'favorite',
+          'notify',
+          'hidden',
+          'shelves',
+          'order',
           'url',
           'epub',
           'fetch',
@@ -675,12 +691,15 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
         const favorite = search.get('favorite');
         const unread = search.get('unread');
         const tag = search.get('tag')?.toLowerCase() ?? null;
+        const shelf = search.get('shelf');
         const q = search.get('q') ?? '';
         const items = [...api.library.keys()]
           .map((novelId) => item(novelId))
           .filter((entry): entry is LibraryItem => entry !== null)
           .filter(
             ({ novel, library }) =>
+              library.hidden === (shelf === 'hidden') &&
+              (shelf === null || shelf === 'hidden' || library.shelfIds.includes(shelf)) &&
               (status === null || library.status === status) &&
               (source === null || novel.source.key === source) &&
               (favorite === null || library.isFavorite === (favorite === 'true')) &&
@@ -763,7 +782,8 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
         });
       }
       case 'GET /library/stats': {
-        const entries = [...api.library.values()];
+        const all = [...api.library.values()];
+        const entries = all.filter((entry) => !entry.hidden);
         const byStatus = Object.fromEntries(
           LIBRARY_STATUSES.map((status) => [
             status,
@@ -772,6 +792,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
         );
         return reply(200, {
           total: entries.length,
+          hidden: all.length - entries.length,
           byStatus,
           favorites: entries.filter((entry) => entry.isFavorite).length,
           newChapters: entries.reduce((sum, entry) => sum + entry.newChapterCount, 0),
@@ -779,10 +800,69 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
           lastCheckedAt: entries.length > 0 ? '2026-09-26T10:00:00.000Z' : null,
         });
       }
+      case 'GET /shelves':
+        return reply(200, { shelves: api.shelves.map(shelfOf) });
+      case 'POST /shelves': {
+        const name = typeof body.name === 'string' ? body.name.trim() : '';
+        if (!name) return bad('Give the shelf a name of up to 40 characters.');
+        if (api.shelves.some((shelf) => shelf.name.toLowerCase() === name.toLowerCase())) {
+          return reply(409, null, `You already have a shelf called “${name}”.`);
+        }
+        return reply(201, { shelf: shelfOf(addShelf(api, name)) });
+      }
+      case 'PUT /shelves/order': {
+        const ids = body.ids as string[];
+        api.shelves.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+        return reply(200, { shelves: api.shelves.map(shelfOf) });
+      }
+      case 'PATCH /shelves/:id': {
+        const shelf = api.shelves.find((each) => each.id === id);
+        if (!shelf) return notFound('This shelf no longer exists.');
+        shelf.name = String(body.name).trim();
+        return reply(200, { shelf: shelfOf(shelf) });
+      }
+      case 'DELETE /shelves/:id': {
+        const index = api.shelves.findIndex((each) => each.id === id);
+        if (index < 0) return notFound('This shelf no longer exists.');
+        api.shelves.splice(index, 1);
+        for (const entry of api.library.values()) {
+          entry.shelfIds = entry.shelfIds.filter((each) => each !== id);
+        }
+        return reply(200, null);
+      }
+      case 'PATCH /library/:id/hidden':
+      case 'PUT /library/:id/shelves': {
+        const entry = api.library.get(id);
+        if (!entry) return notFound("This novel isn't in your library.");
+        if (route.endsWith('hidden')) {
+          entry.hidden = body.hidden === true;
+          if (entry.hidden && entry.notify === true) entry.notify = null;
+        } else {
+          entry.shelfIds = [...new Set(body.shelfIds as string[])];
+        }
+        return reply(200, { item: item(id) });
+      }
       case 'DELETE /library/:id':
         if (!api.library.delete(id)) return notFound("This novel isn't in your library.");
         api.novels.delete(id);
         return reply(200, null);
+      case 'GET /library/notify':
+        return reply(200, {
+          novels: [...api.library.entries()]
+            .filter(([, entry]) => entry.notify !== null)
+            .map(([novelId, entry]) => ({
+              novelId,
+              title: api.novels.get(novelId)?.novel.title ?? '',
+              notify: entry.notify,
+            }))
+            .sort((a, b) => a.title.localeCompare(b.title)),
+        });
+      case 'PATCH /library/:id/notify': {
+        const entry = api.library.get(id);
+        if (!entry) return notFound("This novel isn't in your library.");
+        entry.notify = typeof body.notify === 'boolean' ? body.notify : null;
+        return reply(200, { item: item(id) });
+      }
       case 'PATCH /library/:id/status':
       case 'PATCH /library/:id/favorite': {
         const entry = api.library.get(id);
@@ -1124,6 +1204,14 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
 }
 
 let readCounter = 0;
+
+/** A shelf of the reader's, last in the order; its id is a UUID like the app's. */
+export function addShelf(api: FakeApi, name: string): { id: string; name: string } {
+  counter += 1;
+  const shelf = { id: `00000000-0000-4000-8000-${String(counter).padStart(12, '0')}`, name };
+  api.shelves.push(shelf);
+  return shelf;
+}
 
 /**
  * Records a read for /history: chapter `chapter` of a fake novel, `daysAgo` UTC days back

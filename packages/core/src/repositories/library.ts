@@ -1,14 +1,16 @@
 import {
+  HIDDEN_SHELF,
   LIBRARY_STATUSES,
   type LibraryItem,
   type LibrarySort,
   type LibraryStats,
   type LibraryStatus,
   type LibraryTag,
+  type NovelNotifyChoice,
 } from '@webnovel-hub/shared';
 import type { Queryable } from '../db/database.js';
 import { queryValues } from '../db/query-values.js';
-import { parseJson } from '../db/values.js';
+import { bool, parseJson } from '../db/values.js';
 import {
   LIBRARY_STATE_COLUMNS,
   type LibraryStateRow,
@@ -40,6 +42,8 @@ export interface LibraryFilters {
   favorite: boolean | null;
   unread: boolean | null;
   tag: string | null;
+  /** A shelf's id, or `hidden`; null for the whole library (hidden novels left out). */
+  shelf: string | null;
   q: string | null;
 }
 
@@ -68,7 +72,13 @@ const HAS_UNREAD_NEW = `EXISTS (
 /** The WHERE clause for library entries (`e`, with novels `n`) matching the filters. */
 export function libraryFilterSql(filters: LibraryFilters): { where: string; values: unknown[] } {
   const { values, param } = queryValues();
-  const conditions = ['1 = 1'];
+  const conditions = [filters.shelf === HIDDEN_SHELF ? 'e.hidden = 1' : 'e.hidden = 0'];
+  if (filters.shelf !== null && filters.shelf !== HIDDEN_SHELF) {
+    conditions.push(
+      `EXISTS (SELECT 1 FROM shelf_novels sn
+               WHERE sn.novel_id = e.novel_id AND sn.shelf_id = ${param(filters.shelf)})`,
+    );
+  }
   if (filters.status !== null) conditions.push(`e.status = ${param(filters.status)}`);
   if (filters.source !== null) conditions.push(`n.source = ${param(filters.source)}`);
   if (filters.favorite !== null) conditions.push(`e.is_favorite = ${param(filters.favorite)}`);
@@ -147,10 +157,20 @@ export async function insertLibraryEntry(db: Queryable, novelId: string): Promis
 export async function updateLibraryEntry(
   db: Queryable,
   novelId: string,
-  change: { status: LibraryStatus } | { isFavorite: boolean },
+  change:
+    | { status: LibraryStatus }
+    | { isFavorite: boolean }
+    | { notify: boolean | null }
+    | { hidden: boolean },
 ): Promise<boolean> {
   const [column, value] =
-    'status' in change ? ['status', change.status] : ['is_favorite', change.isFavorite];
+    'status' in change
+      ? ['status', change.status]
+      : 'isFavorite' in change
+        ? ['is_favorite', change.isFavorite]
+        : 'notify' in change
+          ? ['notify', change.notify]
+          : ['hidden', change.hidden];
   const { rowCount } = await db.query(
     `UPDATE library_entries SET ${column} = $2 WHERE novel_id = $1`,
     [novelId, value],
@@ -160,6 +180,7 @@ export async function updateLibraryEntry(
 
 interface StatsRow {
   total: number;
+  hidden: number;
   favorites: number;
   new_chapters: number;
   novels_with_new_chapters: number;
@@ -174,8 +195,10 @@ export async function libraryStats(db: Queryable): Promise<LibraryStats> {
               (SELECT count(*) FROM new_chapters u
                WHERE u.novel_id = e.novel_id AND u.seen_at IS NULL) AS new_chapters
        FROM library_entries e JOIN novels n ON n.id = e.novel_id
+       WHERE e.hidden = 0
      )
      SELECT count(*) AS total,
+            (SELECT count(*) FROM library_entries WHERE hidden = 1) AS hidden,
             count(*) FILTER (WHERE is_favorite = 1) AS favorites,
             coalesce(sum(new_chapters), 0) AS new_chapters,
             count(*) FILTER (WHERE new_chapters > 0) AS novels_with_new_chapters,
@@ -192,6 +215,7 @@ export async function libraryStats(db: Queryable): Promise<LibraryStats> {
   ) as Record<LibraryStatus, number>;
   return {
     total: row?.total ?? 0,
+    hidden: row?.hidden ?? 0,
     byStatus,
     favorites: row?.favorites ?? 0,
     newChapters: row?.new_chapters ?? 0,
@@ -200,13 +224,24 @@ export async function libraryStats(db: Queryable): Promise<LibraryStats> {
   };
 }
 
-/** Unread NEW chapters of novels in the library. */
+/** Unread NEW chapters of novels in the library, hidden ones left out. */
 export async function newChaptersCount(db: Queryable): Promise<number> {
   const { rows } = await db.query<{ count: number }>(
     `SELECT count(*) AS count
      FROM new_chapters u
      JOIN library_entries e ON e.novel_id = u.novel_id
-     WHERE u.seen_at IS NULL`,
+     WHERE u.seen_at IS NULL AND e.hidden = 0`,
   );
   return rows[0]?.count ?? 0;
+}
+
+/** The novels that made their own choice about notifications, by title. */
+export async function listNotifyChoices(db: Queryable): Promise<NovelNotifyChoice[]> {
+  const { rows } = await db.query<{ id: string; title: string; notify: number }>(
+    `SELECT n.id, n.title, e.notify
+     FROM library_entries e JOIN novels n ON n.id = e.novel_id
+     WHERE e.notify IS NOT NULL
+     ORDER BY n.title COLLATE NOCASE`,
+  );
+  return rows.map((row) => ({ novelId: row.id, title: row.title, notify: bool(row.notify) }));
 }

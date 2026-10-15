@@ -5,6 +5,7 @@
 import './polyfills';
 import {
   type KeyValueStore,
+  noticeNumber,
   runBackgroundChecks,
   saveCheckList,
   takeInbox,
@@ -93,9 +94,16 @@ addEventListener('checkForUpdates', (resolve, reject) =>
       runBackgroundChecks({
         store,
         http,
+        // The engine shows a title and a body only; a novel's notice keeps its number, so
+        // the app's next one for the novel takes its place.
         notify: (notice) =>
           CapacitorNotifications.schedule([
-            { id: Date.now() % 2_147_483_647, ...notice, smallIcon: 'ic_stat_notify' },
+            {
+              id: noticeNumber(notice),
+              title: notice.title,
+              body: notice.body,
+              smallIcon: 'ic_stat_notify',
+            },
           ]),
       }),
     resolve,

@@ -24,6 +24,7 @@ import { fetchChapter } from './chapter-fetch.js';
 import type { Handler, JobContext } from './context.js';
 import { fetchAllChapters } from './full-fetch.js';
 import { ingestNovel } from './ingestion.js';
+import { addedNotice, downloadedNotice, failedNotice, noticeStyle } from './notice.js';
 import {
   type ClaimedJob,
   FULL_FETCH,
@@ -287,6 +288,7 @@ export class JobRunner {
         { ...context, seconds: Math.round((Date.now() - started) / 100) / 10 },
         'job completed',
       );
+      void this.announceEnd(job, result, null);
     } catch (thrown) {
       const error = signal.aborted ? (signal.reason as unknown) : thrown;
       await this.settle(job, error, context);
@@ -316,6 +318,7 @@ export class JobRunner {
         this.options.random ?? Math.random,
       );
       const details = { ...context, errorType: error.type, detail: error.detail.split('\n')[0] };
+      if (plan.final) void this.announceEnd(job, null, plan.message);
       if (plan.final) logger.error(details, 'job failed');
       else
         logger.warn(
@@ -331,6 +334,38 @@ export class JobRunner {
         return;
       }
       logger.error({ ...context, err: error }, 'could not record how the job ended');
+    }
+  }
+
+  /**
+   * Tells the reader that a whole-novel download or a novel added from its address is
+   * done, or stopped for good (`failure`, the reason they see).
+   */
+  private async announceEnd(
+    job: ClaimedJob,
+    result: Record<string, unknown> | null,
+    failure: string | null,
+  ): Promise<void> {
+    const { db, logger, notify } = this.options;
+    if (!notify || (job.type !== FULL_FETCH && job.type !== 'novel_ingestion')) return;
+    try {
+      const style = noticeStyle(await findPreferences(db));
+      const added = typeof result?.novel_id === 'string' ? result.novel_id : null;
+      const novelId = job.novelId ?? added;
+      const { rows } = await db.query<{ title: string; chapters: number }>(
+        `SELECT title, (SELECT count(*) FROM chapters WHERE novel_id = n.id) AS chapters
+         FROM novels n WHERE id = $1`,
+        [novelId],
+      );
+      const novel = novelId && rows[0] ? { id: novelId, ...rows[0] } : null;
+      const what = job.type === FULL_FETCH ? 'download' : 'import';
+      if (failure !== null) notify(failedNotice(what, novel, failure, style));
+      else if (!novel || result?.duplicate === true) return;
+      else if (what === 'download')
+        notify(downloadedNotice(novel, Number(result?.failed) || 0, style));
+      else notify(addedNotice(novel, style));
+    } catch (error) {
+      logger.warn({ job: job.id, err: error }, 'could not tell the reader how the job ended');
     }
   }
 

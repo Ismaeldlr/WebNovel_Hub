@@ -10,6 +10,7 @@ import type {
 import {
   type InfiniteData,
   type QueryClient,
+  type QueryKey,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
@@ -105,6 +106,9 @@ function useLibraryUpdate<Vars extends { novelId: string }>(options: {
   request: (vars: Vars) => Promise<LibraryItem>;
   optimistic: (vars: Vars) => Patch;
   failure: string;
+  /** What else the change makes stale. */
+  stale?: QueryKey;
+  onSuccess?: (item: LibraryItem, vars: Vars) => void;
 }) {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -114,13 +118,17 @@ function useLibraryUpdate<Vars extends { novelId: string }>(options: {
       await queryClient.cancelQueries({ queryKey: queryKeys.novel(vars.novelId), exact: true });
       patchCaches(queryClient, vars.novelId, options.optimistic(vars));
     },
-    onSuccess: (item) => patchCaches(queryClient, item.novel.id, item.library),
+    onSuccess: (item, vars) => {
+      patchCaches(queryClient, item.novel.id, item.library);
+      options.onSuccess?.(item, vars);
+    },
     onError: (error, vars) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.novel(vars.novelId), exact: true });
       void queryClient.invalidateQueries({ queryKey: queryKeys.libraryLists });
       toast({ title: options.failure, description: error.message, tone: 'error' });
     },
     onSettled: () => {
+      if (options.stale) void queryClient.invalidateQueries({ queryKey: options.stale });
       // Stale, not refetched: see patchCaches.
       void queryClient.invalidateQueries({
         queryKey: queryKeys.libraryLists,
@@ -146,5 +154,62 @@ export function useSetFavorite() {
       libraryApi.setFavorite(novelId, isFavorite),
     optimistic: ({ isFavorite }) => ({ isFavorite }),
     failure: "Couldn't change the favourite",
+  });
+}
+
+/** What the toast says once a novel's notifications changed. */
+interface Told {
+  title: string;
+  description?: string | undefined;
+}
+
+/**
+ * A novel's own choice about notifications of its new chapters (null: as the settings
+ * say). Says what changed, as the bell alone doesn't.
+ */
+export function useSetNotify() {
+  const toast = useToast();
+  return useLibraryUpdate({
+    request: ({ novelId, notify }: { novelId: string; notify: boolean | null; told: Told }) =>
+      libraryApi.setNotify(novelId, notify),
+    optimistic: ({ notify }) => ({ notify }),
+    failure: "Couldn't change the notifications",
+    stale: queryKeys.notifyChoices,
+    onSuccess: (_item, { told }) =>
+      toast({ title: told.title, ...(told.description ? { description: told.description } : {}) }),
+  });
+}
+
+/** Hides the novel from the library's lists, or shows it again; the toast says what it means. */
+export function useSetHidden() {
+  const toast = useToast();
+  return useLibraryUpdate({
+    request: ({ novelId, hidden }: { novelId: string; hidden: boolean; title: string }) =>
+      libraryApi.setHidden(novelId, hidden),
+    optimistic: ({ hidden }) => ({ hidden }),
+    failure: "Couldn't change where it shows",
+    // The counts, the shelves' and the sidebar's NEW count among them.
+    stale: queryKeys.library,
+    onSuccess: (_item, { hidden, title }) =>
+      toast(
+        hidden
+          ? {
+              title: `${title} is hidden`,
+              description:
+                'It shows only under Hidden in My Library, and its new chapters stay quiet.',
+            }
+          : { title: `${title} is back in your library` },
+      ),
+  });
+}
+
+/** Puts the novel on exactly these shelves. */
+export function useSetShelves() {
+  return useLibraryUpdate({
+    request: ({ novelId, shelfIds }: { novelId: string; shelfIds: string[] }) =>
+      libraryApi.setShelves(novelId, shelfIds),
+    optimistic: ({ shelfIds }) => ({ shelfIds }),
+    failure: "Couldn't change its shelves",
+    stale: queryKeys.shelves,
   });
 }

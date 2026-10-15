@@ -46,8 +46,19 @@ export interface PageRenderer {
   render(request: RenderRequest): Promise<{ url: string; status: number; html: string }>;
 }
 
+/**
+ * What a notification is about. The reader turns each kind on or off (`test` is the
+ * settings' "Send a test notification"), and Android lists each as a category of its own.
+ */
+export type NoticeKind = 'new-chapters' | 'downloads' | 'problems' | 'test';
+
 /** A system notification, such as "5 new chapters". */
 export interface Notice {
+  kind: NoticeKind;
   title: string;
   body: string;
+  /** The novel it is about: tapping the notification opens it (Android). */
+  novelId?: string;
+  /** A later notice with the same tag takes this one's place. */
+  tag?: string;
 }

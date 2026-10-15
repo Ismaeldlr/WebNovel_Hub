@@ -6,39 +6,97 @@ import { CapacitorHttp, SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Share } from '@capacitor/share';
-import type { Notice } from '@webnovel-hub/core';
+import { type Notice, type NoticeKind, noticeNumber } from '@webnovel-hub/core';
 import { toBase64 } from './http.js';
 
 const RELEASES = 'https://github.com/Ismaeldlr/WebNovel_Hub/releases';
 const LATEST_RELEASE = 'https://api.github.com/repos/Ismaeldlr/WebNovel_Hub/releases/latest';
-const NEW_CHAPTERS_CHANNEL = 'new-chapters';
 
-let channel: Promise<void> | null = null;
+/**
+ * Each kind of notice has a category of its own in Android's settings for the app, where
+ * the reader can change its sound or turn it off. New chapters alert; the rest are quiet.
+ */
+const CHANNELS: Record<
+  Exclude<NoticeKind, 'test'>,
+  { name: string; about: string; importance: 2 | 3 }
+> = {
+  'new-chapters': {
+    name: 'New chapters',
+    about: 'Chapters found by the automatic checks',
+    importance: 3,
+  },
+  downloads: {
+    name: 'Downloads finished',
+    about: 'A whole novel downloaded, or a novel added',
+    importance: 2,
+  },
+  problems: {
+    name: 'Problems',
+    about: "Checks and downloads that couldn't be done",
+    importance: 2,
+  },
+};
 
-/** A system notification, shown only while the app is out of sight. */
+let channels: Promise<unknown> | null = null;
+
+/**
+ * A system notification, shown only while the app is out of sight (a test one always).
+ * Tapping one about a novel opens it (see onNotificationTap).
+ */
 export const notify = (notice: Notice): void => {
   void (async () => {
-    if ((await App.getState()).isActive) return;
-    channel ??= LocalNotifications.createChannel({
-      id: NEW_CHAPTERS_CHANNEL,
-      name: 'New chapters',
-      description: 'Chapters found by the automatic checks',
-      importance: 3,
-    });
-    await channel;
+    if (notice.kind !== 'test' && (await App.getState()).isActive) return;
+    channels ??= Promise.all(
+      Object.entries(CHANNELS).map(([id, channel]) =>
+        LocalNotifications.createChannel({
+          id,
+          name: channel.name,
+          description: channel.about,
+          importance: channel.importance,
+        }),
+      ),
+    );
+    await channels;
     await LocalNotifications.schedule({
       notifications: [
         {
-          id: Date.now() % 2_147_483_647,
+          id: noticeNumber(notice),
           title: notice.title,
           body: notice.body,
-          channelId: NEW_CHAPTERS_CHANNEL,
+          largeBody: notice.body,
+          channelId: notice.kind === 'test' ? 'new-chapters' : notice.kind,
           smallIcon: 'ic_stat_notify',
+          autoCancel: true,
+          ...(notice.novelId ? { extra: { novelId: notice.novelId } } : {}),
         },
       ],
     });
   })().catch((error: unknown) => console.warn('could not show a notification', error));
 };
+
+/**
+ * Calls `open` with the novel of each notification the reader taps. Returns a function
+ * that stops it.
+ */
+export function onNotificationTap(open: (novelId: string) => void): () => void {
+  const listener = LocalNotifications.addListener(
+    'localNotificationActionPerformed',
+    ({ notification }) => {
+      const novelId = (notification.extra as { novelId?: unknown } | undefined)?.novelId;
+      if (typeof novelId === 'string') open(novelId);
+    },
+  );
+  return () => void listener.then((handle) => handle.remove());
+}
+
+/**
+ * Whether the app may show notifications, without asking: `prompt` until the reader has
+ * answered Android's question (Android 13+).
+ */
+export async function notificationPermission(): Promise<'granted' | 'denied' | 'prompt'> {
+  const { display } = await LocalNotifications.checkPermissions();
+  return display === 'granted' || display === 'denied' ? display : 'prompt';
+}
 
 /** Whether the app may show notifications, asking the reader the first time (Android 13+). */
 export async function allowNotifications(): Promise<boolean> {
@@ -113,14 +171,28 @@ function followTheme(): void {
   });
 }
 
+let backHandler: (() => boolean) | null = null;
+
 /**
- * The back button goes back a page; on the first page it sends the app to the background
- * rather than closing it, so background fetching can go on.
+ * What the back button does: `handler` closes something or goes up a page, and answers
+ * false when there is nothing left to go back to. Returns a function that removes it.
+ */
+export function onBackButton(handler: () => boolean): () => void {
+  backHandler = handler;
+  return () => {
+    if (backHandler === handler) backHandler = null;
+  };
+}
+
+/**
+ * The back button does what the page says (else it goes back a page); with nothing left
+ * to go back to, it sends the app to the background rather than closing it, so background
+ * fetching can go on.
  */
 function handleBackButton(): void {
   void App.addListener('backButton', ({ canGoBack }) => {
-    if (canGoBack) window.history.back();
-    else void App.minimizeApp();
+    const handled = backHandler ? backHandler() : canGoBack && (window.history.back(), true);
+    if (!handled) void App.minimizeApp();
   });
 }
 

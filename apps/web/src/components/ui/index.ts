@@ -20,6 +20,7 @@ export { ProgressBar } from './ProgressBar';
 export { SkipLink } from './SkipLink';
 export { Slider } from './Slider';
 export { Spinner } from './Spinner';
+export { Switch } from './Switch';
 export { EmptyState, ErrorState, LoadingState, Skeleton } from './States';
 export { tabPanelProps } from './tabPanel';
 export { Tabs, type TabItem } from './Tabs';

@@ -59,8 +59,8 @@ export function TermsPage() {
   const text = search.trim().toLowerCase();
   const shown = (terms.data ?? []).filter((term) => text === '' || matches(term, text));
 
-  // Phones: back to Profile from the top bar.
-  usePageBar({ back: '/profile' });
+  // Phones: back to Profile (or the chapter it was opened from) from the top bar.
+  usePageBar({ back: true });
   return (
     <>
       <PageHeader

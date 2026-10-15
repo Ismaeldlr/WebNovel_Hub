@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { type ReactNode, useEffect, useId, useRef } from 'react';
+import { useBackLayer } from '../../lib/hooks';
 import { IconButton } from './Button';
 import styles from './Dialog.module.css';
 
@@ -9,7 +10,7 @@ interface DialogProps {
   children: ReactNode;
   /** The buttons along the bottom. */
   actions?: ReactNode;
-  /** Escape or a click on the backdrop; ignored while `busy`. */
+  /** Escape, the phone's back button or a click on the backdrop; ignored while `busy`. */
   onCancel: () => void;
   busy?: boolean;
   size?: 'md' | 'lg';
@@ -60,6 +61,7 @@ export function Dialog({
   const cancel = () => {
     if (!busy) onCancel();
   };
+  useBackLayer(open, cancel);
 
   return (
     <dialog

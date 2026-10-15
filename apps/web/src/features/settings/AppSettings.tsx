@@ -169,33 +169,6 @@ export function BackgroundSection({
   );
 }
 
-const NOTIFY_OPTIONS = [
-  {
-    value: 'on',
-    label: 'Tell me with a notification',
-    detail: 'When the app is out of sight.',
-  },
-  { value: 'off', label: "Don't notify me", detail: 'New chapters show in your library.' },
-] as const;
-
-/** Whether new chapters found by the scheduled checks are announced. */
-export function NotifyChoice({
-  enabled,
-  onChange,
-}: {
-  enabled: boolean;
-  onChange: (enabled: boolean) => void;
-}) {
-  return (
-    <Choices
-      legend="When the checks find new chapters"
-      value={enabled ? 'on' : 'off'}
-      options={NOTIFY_OPTIONS}
-      onChange={(value) => onChange(value === 'on')}
-    />
-  );
-}
-
 /** The app's version, and its updates from the project's releases. */
 export function AppSection({ kind }: { kind: Kind }) {
   const version = useAppVersion();

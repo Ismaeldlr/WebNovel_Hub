@@ -78,10 +78,10 @@ export const PageTitleContext = createContext<((title: string) => void) | null>(
 /** What a page asks of the phone top bar besides its title. */
 export interface PageBar {
   /**
-   * A back button in place of the menu button, for pages reached from another page; a
-   * path says where it goes when the page was opened directly (else the library).
+   * A back button in place of the menu button, for pages below another page; it goes up
+   * to that page (app/back.ts).
    */
-  back?: boolean | string;
+  back?: boolean;
   /** No background and no title, so the top of the page shows through. */
   clear?: boolean;
 }
@@ -124,9 +124,36 @@ export function usePageBar({ back = false, clear = false }: PageBar): void {
   useEffect(() => () => setBar?.({}), [setBar]);
 }
 
+/** What the phone's back button closes before it leaves the page, the latest open last. */
+const backLayers: { close: () => void }[] = [];
+
+/**
+ * While `active`, the phone's back button calls `onBack` (closing the menu, dialog or
+ * drawer) instead of leaving the page.
+ */
+export function useBackLayer(active: boolean, onBack: () => void): void {
+  const back = useEffectEvent(onBack);
+  useEffect(() => {
+    if (!active) return;
+    const layer = { close: () => back() };
+    backLayers.push(layer);
+    return () => {
+      backLayers.splice(backLayers.indexOf(layer), 1);
+    };
+  }, [active]);
+}
+
+/** Closes the menu, dialog or drawer opened last; false when none is open. */
+export function closeBackLayer(): boolean {
+  const top = backLayers.at(-1);
+  top?.close();
+  return top !== undefined;
+}
+
 /**
  * Calls `onDismiss` when the user presses Escape or clicks outside every element in
- * `inside`, while `active`. For menus and popovers.
+ * `inside`, while `active` (the phone's back button counts as Escape). For menus and
+ * popovers.
  */
 export function useDismiss(
   active: boolean,
@@ -139,6 +166,7 @@ export function useDismiss(
     inside.some((ref) => ref.current?.contains(target)),
   );
 
+  useBackLayer(active, () => onDismiss('escape'));
   useEffect(() => {
     if (!active) return;
     const onKeyDown = (event: KeyboardEvent) => {

@@ -1,6 +1,7 @@
 import {
   type ContentWidth,
   type EditablePreference,
+  type NotifyNovels,
   type PreferencesUpdate,
   READER_PREFERENCE_DEFAULTS,
   type ReaderFontFamily,
@@ -39,12 +40,18 @@ interface PreferencesRow {
   background_fetching: number;
   wifi_only: number;
   notify_new_chapters: number;
+  notify_novels: NotifyNovels;
+  notify_each_novel: number;
+  notify_show_titles: number;
+  notify_downloads: number;
+  notify_problems: number;
   wtr_lab_machine_translation: number;
 }
 
 const PREFERENCE_COLUMNS = `theme, font_size, font_size_compact, line_spacing, content_width,
   font_family, prefetch_count, update_interval_hours, background_fetching, wifi_only,
-  notify_new_chapters, wtr_lab_machine_translation`;
+  notify_new_chapters, notify_novels, notify_each_novel, notify_show_titles, notify_downloads,
+  notify_problems, wtr_lab_machine_translation`;
 
 function toPreferences(row: PreferencesRow): ReaderPreferences {
   return {
@@ -59,6 +66,11 @@ function toPreferences(row: PreferencesRow): ReaderPreferences {
     backgroundFetching: bool(row.background_fetching),
     wifiOnly: bool(row.wifi_only),
     notifyNewChapters: bool(row.notify_new_chapters),
+    notifyNovels: row.notify_novels,
+    notifyEachNovel: bool(row.notify_each_novel),
+    notifyShowTitles: bool(row.notify_show_titles),
+    notifyDownloads: bool(row.notify_downloads),
+    notifyProblems: bool(row.notify_problems),
     wtrLabMachineTranslation: bool(row.wtr_lab_machine_translation),
   };
 }
@@ -84,6 +96,11 @@ const EDITABLE_COLUMNS: Record<EditablePreference, string> = {
   backgroundFetching: 'background_fetching',
   wifiOnly: 'wifi_only',
   notifyNewChapters: 'notify_new_chapters',
+  notifyNovels: 'notify_novels',
+  notifyEachNovel: 'notify_each_novel',
+  notifyShowTitles: 'notify_show_titles',
+  notifyDownloads: 'notify_downloads',
+  notifyProblems: 'notify_problems',
   wtrLabMachineTranslation: 'wtr_lab_machine_translation',
 };
 

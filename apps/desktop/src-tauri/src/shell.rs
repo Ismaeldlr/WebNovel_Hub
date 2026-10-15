@@ -83,13 +83,14 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
     }
 }
 
-/// A system notification, shown only while the window is out of sight.
+/// A system notification, shown only while the window is out of sight, unless `always`
+/// (the settings' test notification).
 #[tauri::command]
-pub fn notify(app: AppHandle, title: String, body: String) {
+pub fn notify(app: AppHandle, title: String, body: String, always: Option<bool>) {
     let in_sight = app.get_webview_window(MAIN).is_some_and(|window| {
         window.is_visible().unwrap_or(false) && window.is_focused().unwrap_or(false)
     });
-    if !in_sight {
+    if always.unwrap_or(false) || !in_sight {
         let _ = app.notification().builder().title(title).body(body).show();
     }
 }

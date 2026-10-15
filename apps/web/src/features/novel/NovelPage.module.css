@@ -445,3 +445,8 @@ a.sourcePill:hover {
 .formProblem {
   color: var(--danger);
 }
+
+/* The button under a notice on the page (e.g. "Show in library"). */
+.noticeActions {
+  margin-top: var(--space-2);
+}

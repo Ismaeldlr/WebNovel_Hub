@@ -115,6 +115,35 @@ describe('routing', () => {
     );
   });
 
+  it('makes shelves, puts novels on them, and hides novels', async () => {
+    const { id } = await insertNovel(core.db, { title: 'Alpha' });
+    const created = await call({ method: 'POST', path: '/shelves', body: { name: ' ✨ Comfy ' } });
+    expect(created.status).toBe(201);
+    const shelf = (body(created).data as { shelf: { id: string } }).shelf;
+    expect(body(created).data).toMatchObject({ shelf: { name: '✨ Comfy', novels: 0 } });
+    expect(body(await call({ method: 'POST', path: '/shelves', body: { name: '' } })).error).toBe(
+      'Give the shelf a name of up to 40 characters.',
+    );
+
+    const put = await call({
+      method: 'PUT',
+      path: `/library/${id}/shelves`,
+      body: { shelfIds: [shelf.id] },
+    });
+    expect(body(put).data).toMatchObject({ item: { library: { shelfIds: [shelf.id] } } });
+    expect(body(await get(`/library?shelf=${shelf.id}`)).data).toMatchObject({ total: 1 });
+
+    await call({ method: 'PATCH', path: `/library/${id}/hidden`, body: { hidden: true } });
+    expect(body(await get('/library')).data).toMatchObject({ total: 0 });
+    expect(body(await get('/library?shelf=hidden')).data).toMatchObject({ total: 1 });
+    expect(body(await get('/shelves')).data).toMatchObject({ shelves: [{ novels: 0 }] });
+
+    expect((await call({ method: 'DELETE', path: `/shelves/${shelf.id}` })).status).toBe(200);
+    expect(body(await call({ method: 'DELETE', path: `/shelves/${shelf.id}` })).error).toBe(
+      'This shelf no longer exists.',
+    );
+  });
+
   it('decodes parameters and keeps query values as text', async () => {
     const { id } = await insertNovel(core.db, { title: 'Ünïcode Tale', chapters: 12 });
     const page = await get(

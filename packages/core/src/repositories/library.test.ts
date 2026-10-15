@@ -7,12 +7,23 @@ const NO_FILTERS: LibraryFilters = {
   favorite: null,
   unread: null,
   tag: null,
+  shelf: null,
   q: null,
 };
 
 describe('libraryFilterSql', () => {
-  it('matches everything without filters', () => {
-    expect(libraryFilterSql(NO_FILTERS)).toEqual({ where: '1 = 1', values: [] });
+  it('matches every novel shown without filters, the hidden ones on their own', () => {
+    expect(libraryFilterSql(NO_FILTERS)).toEqual({ where: 'e.hidden = 0', values: [] });
+    expect(libraryFilterSql({ ...NO_FILTERS, shelf: 'hidden' })).toEqual({
+      where: 'e.hidden = 1',
+      values: [],
+    });
+  });
+
+  it('filters by a shelf, still leaving hidden novels out', () => {
+    const { where, values } = libraryFilterSql({ ...NO_FILTERS, shelf: 'shelf-id' });
+    expect(where).toMatch(/^e\.hidden = 0 AND EXISTS \(SELECT 1 FROM shelf_novels sn/);
+    expect(values).toEqual(['shelf-id']);
   });
 
   it('adds one condition per filter, numbering the values in order', () => {
@@ -22,6 +33,7 @@ describe('libraryFilterSql', () => {
       favorite: false,
       unread: true,
       tag: null,
+      shelf: null,
       q: 'Mother  learning',
     });
     expect(values).toEqual(['following', 'royal_road', false, '%mother%', '%learning%']);

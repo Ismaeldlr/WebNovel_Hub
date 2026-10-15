@@ -9,7 +9,7 @@ import { queryKeys } from '../../app/queryClient';
 import { Cover } from '../../components/Cover';
 import { IconButton, Spinner } from '../../components/ui';
 import { plural } from '../../lib/format';
-import { useDebouncedValue } from '../../lib/hooks';
+import { useBackLayer, useDebouncedValue } from '../../lib/hooks';
 import styles from './GlobalSearch.module.css';
 
 /** How long the global search waits after the last keystroke (14.1). */
@@ -20,7 +20,7 @@ type Option = { kind: 'novel'; result: SearchResult } | { kind: 'all' };
 interface GlobalSearchProps {
   /**
    * Phones: the search opens over the top bar. Closes it: the Close button, Escape on an
-   * empty box, and choosing a result call it.
+   * empty box, the phone's back button, and choosing a result call it.
    */
   onClose?: () => void;
 }
@@ -43,6 +43,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
   // Whether the list may show: the box has focus and the list wasn't dismissed.
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
+  useBackLayer(onClose !== undefined, () => onClose?.());
 
   const typed = text.trim();
   const q = useDebouncedValue(typed, GLOBAL_SEARCH_DELAY_MS);

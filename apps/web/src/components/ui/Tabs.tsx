@@ -4,7 +4,7 @@ import styles from './Tabs.module.css';
 export interface TabItem<Id extends string> {
   id: Id;
   label: string;
-  /** With `chips`, shown after the label on phones (e.g. how many novels). */
+  /** Shown after the label: with `chips` on phones, with `line` always (e.g. how many novels). */
   count?: number;
 }
 
@@ -18,6 +18,11 @@ interface TabsProps<Id extends string> {
   idPrefix: string;
   /** Phones: separate chips in a row that scrolls sideways, with their counts. */
   chips?: boolean;
+  /**
+   * `segments` (the default): a bar of segments. `line`: names along a line that scrolls
+   * sideways, the chosen one underlined, with their counts (shelves above other tabs).
+   */
+  look?: 'segments' | 'line';
 }
 
 /**
@@ -31,6 +36,7 @@ export function Tabs<Id extends string>({
   onSelect,
   idPrefix,
   chips = false,
+  look = 'segments',
 }: TabsProps<Id>) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -58,7 +64,13 @@ export function Tabs<Id extends string>({
   };
 
   return (
-    <div role="tablist" aria-label={label} className={styles.tabs} data-chips={chips || undefined}>
+    <div
+      role="tablist"
+      aria-label={label}
+      className={styles.tabs}
+      data-chips={chips || undefined}
+      data-look={look === 'line' ? 'line' : undefined}
+    >
       {tabs.map((tab, index) => (
         <button
           key={tab.id}
