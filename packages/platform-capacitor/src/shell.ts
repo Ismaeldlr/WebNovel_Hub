@@ -113,14 +113,28 @@ function followTheme(): void {
   });
 }
 
+let backHandler: (() => boolean) | null = null;
+
 /**
- * The back button goes back a page; on the first page it sends the app to the background
- * rather than closing it, so background fetching can go on.
+ * What the back button does: `handler` closes something or goes up a page, and answers
+ * false when there is nothing left to go back to. Returns a function that removes it.
+ */
+export function onBackButton(handler: () => boolean): () => void {
+  backHandler = handler;
+  return () => {
+    if (backHandler === handler) backHandler = null;
+  };
+}
+
+/**
+ * The back button does what the page says (else it goes back a page); with nothing left
+ * to go back to, it sends the app to the background rather than closing it, so background
+ * fetching can go on.
  */
 function handleBackButton(): void {
   void App.addListener('backButton', ({ canGoBack }) => {
-    if (canGoBack) window.history.back();
-    else void App.minimizeApp();
+    const handled = backHandler ? backHandler() : canGoBack && (window.history.back(), true);
+    if (!handled) void App.minimizeApp();
   });
 }
 

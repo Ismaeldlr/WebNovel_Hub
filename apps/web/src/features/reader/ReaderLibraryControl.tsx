@@ -1,6 +1,7 @@
 import type { LibraryState, ReaderNovel } from '@webnovel-hub/shared';
 import { BookOpen, ChevronDown, EllipsisVertical, Replace, Star } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { useGoUp } from '../../app/back';
 import { IconButton, Menu, MenuHeader, MenuItem, MenuSeparator } from '../../components/ui';
 import { STATUS_LABELS, STATUS_OPTIONS } from '../../lib/reading';
 import { useSetFavorite, useSetStatus } from '../library/libraryActions';
@@ -21,6 +22,7 @@ export function ReaderLibraryControl({ novel, library, compact = false }: Props)
   const setStatus = useSetStatus();
   const setFavorite = useSetFavorite();
   const navigate = useNavigate();
+  const goUp = useGoUp();
   if (!library && !compact) return null;
 
   const statusItems = library && (
@@ -61,10 +63,7 @@ export function ReaderLibraryControl({ novel, library, compact = false }: Props)
             </MenuItem>
           </>
         )}
-        <MenuItem
-          icon={<BookOpen aria-hidden="true" />}
-          onSelect={() => void navigate(`/novels/${novel.id}`)}
-        >
+        <MenuItem icon={<BookOpen aria-hidden="true" />} onSelect={() => void goUp()}>
           Novel page
         </MenuItem>
         <MenuItem

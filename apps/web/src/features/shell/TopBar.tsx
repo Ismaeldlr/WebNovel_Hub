@@ -11,7 +11,8 @@ import {
   Sun,
 } from 'lucide-react';
 import { type Ref, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { Link } from 'react-router';
+import { useGoUp } from '../../app/back';
 import { HOME_PATH } from '../../app/navigation';
 import { useTheme } from '../../app/theme';
 import { BrandMark } from '../../components/BrandMark';
@@ -65,7 +66,7 @@ export function TopBar({
       data-clear={(compact && pageBar.clear) || undefined}
     >
       {back ? (
-        <BackButton fallback={typeof back === 'string' ? back : HOME_PATH} />
+        <BackButton />
       ) : (
         drawer && (
           <IconButton
@@ -113,21 +114,11 @@ export function TopBar({
   );
 }
 
-/**
- * Back to the page the reader came from, or to `fallback` when the page was opened
- * directly (nothing before it in this visit).
- */
-function BackButton({ fallback }: { fallback: string }) {
-  const navigate = useNavigate();
-  const location = useLocation();
+/** Up to the page above this one (see back.ts), like the phone's back button. */
+function BackButton() {
+  const goUp = useGoUp();
   return (
-    <IconButton
-      label="Back"
-      onClick={() => {
-        if (location.key === 'default') void navigate(fallback);
-        else void navigate(-1);
-      }}
-    >
+    <IconButton label="Back" onClick={() => void goUp()}>
       <ArrowLeft aria-hidden="true" />
     </IconButton>
   );

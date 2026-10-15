@@ -34,7 +34,7 @@ export function SettingsPage() {
   const { data: preferences } = query;
   const groups = SETTINGS_GROUPS.filter((each) => !each.appOnly || appKind !== 'browser');
   const current = groups.find((each) => each.id === group);
-  usePageBar({ back: phone && current ? '/settings' : false });
+  usePageBar({ back: phone && current !== undefined });
 
   if (group !== undefined && !current) return <Navigate to="/settings" replace />;
   const shown = current ?? (phone ? undefined : groups[0]);

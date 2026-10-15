@@ -10,6 +10,7 @@ export {
   checkForUpdate,
   isNewer,
   notify,
+  onBackButton,
   openLatestRelease,
   saveFile,
   setUpShell,

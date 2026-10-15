@@ -15,6 +15,7 @@ const app = vi.hoisted(() => ({
     allowNotifications: vi.fn(() => Promise.resolve(true)),
     batteryRestricted: vi.fn(() => Promise.resolve(false)),
     askBatteryExemption: vi.fn(() => Promise.resolve()),
+    onBackButton: vi.fn(() => () => undefined),
   },
 }));
 

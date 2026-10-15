@@ -18,6 +18,11 @@ export interface AndroidShell {
   batteryRestricted(): Promise<boolean>;
   /** Opens Android's prompt to let the app run in the background without battery limits. */
   askBatteryExemption(): Promise<void>;
+  /**
+   * What the back button does: `handler` answers false when there's nothing to go back to
+   * (the app then goes to the background). Returns a function that removes it.
+   */
+  onBackButton(handler: () => boolean): () => void;
 }
 
 /** A library replaced by a restore, kept on the device. */
@@ -116,6 +121,7 @@ async function androidPlatform(): Promise<AppPlatform> {
       allowNotifications: capacitor.allowNotifications,
       batteryRestricted: capacitor.batteryRestricted,
       askBatteryExemption: capacitor.askBatteryExemption,
+      onBackButton: capacitor.onBackButton,
     },
     onCoreReady: (core) => void capacitor.manageBackground(core),
   };

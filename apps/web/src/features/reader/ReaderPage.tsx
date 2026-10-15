@@ -13,6 +13,7 @@ import { type ReactNode, type RefObject, useEffect, useEffectEvent, useRef, useS
 import { Link, useNavigate, useParams } from 'react-router';
 import { readerApi } from '../../api/catalog';
 import { ApiError } from '../../api/client';
+import { useUpClick } from '../../app/back';
 import { queryKeys } from '../../app/queryClient';
 import {
   ButtonLink,
@@ -75,7 +76,7 @@ export function ReaderPage() {
           headingLevel={1}
           title="That isn't a chapter number"
           action={
-            <ButtonLink to={readerPath(novelId, 1)} variant="primary">
+            <ButtonLink to={readerPath(novelId, 1)} replace variant="primary">
               Open chapter 1
             </ButtonLink>
           }
@@ -105,6 +106,7 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
   });
   const { data } = query;
   const navigate = useNavigate();
+  const upClick = useUpClick();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const articleRef = useRef<HTMLElement>(null);
   // Phones get a toolbar at the bottom, and bars that make way while reading (§5.4).
@@ -168,7 +170,7 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
           : undefined;
     if (!target) return;
     event.preventDefault();
-    void navigate(readerPath(novelId, target.number));
+    void navigate(readerPath(novelId, target.number), { replace: true });
   });
   useEffect(() => {
     const listener = (event: KeyboardEvent) => onKeyDown(event);
@@ -238,7 +240,7 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
           <p className={styles.kicker}>
             {data ? (
               <>
-                <Link to={`/novels/${novelId}`} className={styles.novelLink}>
+                <Link to={`/novels/${novelId}`} className={styles.novelLink} onClick={upClick}>
                   {data.novel.title}
                 </Link>
                 <span aria-hidden="true"> · </span>
@@ -355,6 +357,7 @@ function ReaderFrame({
   children,
 }: FrameProps) {
   const hidden = barsHidden || undefined;
+  const upClick = useUpClick();
   return (
     <div className={styles.reader}>
       <SkipLink href="#reader-main">Skip to the chapter</SkipLink>
@@ -369,6 +372,7 @@ function ReaderFrame({
             to={`/novels/${novelId}`}
             className={styles.back}
             aria-label={`Back to ${novelTitle ?? 'the novel'}`}
+            onClick={upClick}
           >
             <ArrowLeft aria-hidden="true" />
             <span className={styles.backText}>
@@ -500,6 +504,7 @@ interface ReaderErrorProps {
 
 /** Not found (novel or chapter), an invalid chapter, or a request that failed. */
 function ReaderError({ error, novelId, chapter, onRetry, retrying }: ReaderErrorProps) {
+  const upClick = useUpClick();
   if (error instanceof ApiError && error.status === 404) {
     const details = error.data as ChapterNotFound | null;
     if (details && typeof details.totalChapters === 'number') {
@@ -512,11 +517,13 @@ function ReaderError({ error, novelId, chapter, onRetry, retrying }: ReaderError
           action={
             <>
               {last > 0 && (
-                <ButtonLink to={readerPath(novelId, last)} variant="primary">
+                <ButtonLink to={readerPath(novelId, last)} replace variant="primary">
                   Open chapter {last.toLocaleString()}
                 </ButtonLink>
               )}
-              <ButtonLink to={`/novels/${novelId}`}>Back to the novel</ButtonLink>
+              <ButtonLink to={`/novels/${novelId}`} onClick={upClick}>
+                Back to the novel
+              </ButtonLink>
             </>
           }
         >
@@ -546,7 +553,7 @@ function ReaderError({ error, novelId, chapter, onRetry, retrying }: ReaderError
         headingLevel={1}
         title="That isn't a chapter number"
         action={
-          <ButtonLink to={readerPath(novelId, 1)} variant="primary">
+          <ButtonLink to={readerPath(novelId, 1)} replace variant="primary">
             Open chapter 1
           </ButtonLink>
         }

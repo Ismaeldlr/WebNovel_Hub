@@ -42,6 +42,7 @@ export function ChapterNav({
       {previous ? (
         <ButtonLink
           to={readerPath(novelId, previous.number)}
+          replace
           rel="prev"
           size={size}
           aria-keyshortcuts="ArrowLeft"
@@ -79,6 +80,7 @@ export function ChapterNav({
       {next ? (
         <ButtonLink
           to={readerPath(novelId, next.number)}
+          replace
           rel="next"
           size={size}
           aria-keyshortcuts="ArrowRight"
