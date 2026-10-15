@@ -28,6 +28,7 @@
     "test": "npm run test:js",
     "test:js": "npm run test --workspaces --if-present",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "set-version": "node scripts/set-version.mjs",
     "dev:bridge": "npm run bridge --workspace @webnovel-hub/platform-node",
     "scrape": "npm run scrape --workspace @webnovel-hub/platform-node --",
     "dev:desktop": "npm run dev --workspace @webnovel-hub/desktop",

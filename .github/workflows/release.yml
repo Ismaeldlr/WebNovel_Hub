@@ -1,22 +1,113 @@
 name: Release
 
-# A version tag (v1.2.3) builds the Windows installer and attaches it, with the updater's
-# latest.json, to a draft release; then the Android APKs join it. Publishing the draft
-# makes it the update the apps see. The tag must match the apps' version (package.json in
-# apps/desktop and apps/mobile).
+# Releases a version of both apps on one GitHub release: the Windows installer (with the
+# updater's latest.json, so installed apps offer the update) and the Android APKs.
+#
+# - Merging a pull request that changes the version (npm run set-version -- 1.2.3) tags
+#   the merge commit v1.2.3 and releases it. The pull request's "## Release notes" section,
+#   when it has one, opens the release's text.
+# - Pushing a version tag (v1.2.3) releases that tag.
+# - Run by hand with a version, it releases that version's tag, tagging the branch it runs
+#   on first when the tag doesn't exist yet (for a merge whose release failed).
+#
+# Needs the repository secrets TAURI_SIGNING_PRIVATE_KEY (and, when the key has one,
+# TAURI_SIGNING_PRIVATE_KEY_PASSWORD), ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+# ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD.
 on:
+  pull_request:
+    types: [closed]
+    branches: [main]
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, such as 1.2.3
+        required: true
 
 permissions:
   contents: write
 
+# One release at a time; a second one waits instead of cancelling the first.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
+  plan:
+    name: Version
+    # A pull request closed without merging releases nothing.
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.plan.outputs.release }}
+      tag: ${{ steps.plan.outputs.tag }}
+      version: ${{ steps.plan.outputs.version }}
+      notes: ${{ steps.plan.outputs.notes }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.ref }}
+          fetch-depth: 0
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          HAS_TAURI_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+          HAS_ANDROID_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: |
+          version=$(node -p "require('./apps/mobile/package.json').version")
+          desktop=$(node -p "require('./apps/desktop/package.json').version")
+          if [ "$version" != "$desktop" ]; then
+            echo "::error::The apps' versions differ ($desktop on Windows, $version on Android): run npm run set-version."
+            exit 1
+          fi
+          case "$EVENT" in
+            push) tag="$GITHUB_REF_NAME" ;;
+            workflow_dispatch) tag="v$INPUT_VERSION" ;;
+            *) tag="v$version" ;;
+          esac
+          exists=$(git rev-parse -q --verify "refs/tags/$tag" > /dev/null && echo yes || echo no)
+
+          if [ "$EVENT" = pull_request ] && [ "$exists" = yes ]; then
+            echo "The version is still $version (already released as $tag): nothing to release."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$exists" = no ] && [ "$tag" != "v$version" ]; then
+            echo "::error::$tag doesn't exist, and this commit is version $version."
+            exit 1
+          fi
+          if [ "$HAS_TAURI_KEY" != true ] || [ "$HAS_ANDROID_KEY" != true ]; then
+            echo "::error::Set the signing secrets first (see the top of release.yml), then run this workflow by hand with version $version."
+            exit 1
+          fi
+          if [ "$exists" = no ]; then
+            git tag "$tag"
+            git push origin "$tag"
+          fi
+
+          {
+            echo "release=true"
+            echo "tag=$tag"
+            echo "version=${tag#v}"
+            # The pull request's "## Release notes" section, without its heading.
+            echo "notes<<END_OF_NOTES"
+            printf '%s\n' "$PR_BODY" | tr -d '\r' |
+              awk '/^## /{on = ($0 ~ /^## Release notes/); next} on'
+            echo "END_OF_NOTES"
+          } >> "$GITHUB_OUTPUT"
+
   windows:
     name: Windows installer
+    needs: plan
+    if: needs.plan.outputs.release == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.tag }}
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
@@ -34,18 +125,22 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
-          tagName: ${{ github.ref_name }}
-          releaseName: Webnovel Hub ${{ github.ref_name }}
-          releaseBody: Download the installer below.
+          tagName: ${{ needs.plan.outputs.tag }}
+          releaseName: Webnovel Hub ${{ needs.plan.outputs.tag }}
+          releaseBody: Being built; the downloads follow.
           releaseDraft: true
 
   android:
     name: Android APKs
     # Adds to the draft release the Windows job created.
-    needs: windows
+    needs: [plan, windows]
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.plan.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.tag }}
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
@@ -55,8 +150,6 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
-      - name: Check the tag matches the app's version
-        run: test "v$(node -p "require('./apps/mobile/package.json').version")" = "$GITHUB_REF_NAME"
       - run: npm ci
       - run: npm run sync --workspace @webnovel-hub/mobile
       - name: Build the signed APKs
@@ -78,7 +171,36 @@ jobs:
           mkdir apks
           built=apps/mobile/android/app/build/outputs/apk/release
           for abi in arm64-v8a armeabi-v7a x86_64 universal; do
-            cp "$built/app-$abi-release.apk" "apks/webnovel-hub-$GITHUB_REF_NAME-android-$abi.apk"
+            cp "$built/app-$abi-release.apk" "apks/webnovel-hub-$TAG-android-$abi.apk"
           done
-          (cd apks && sha256sum *.apk > "webnovel-hub-$GITHUB_REF_NAME-android-sha256.txt")
-          gh release upload "$GITHUB_REF_NAME" apks/* --clobber
+          gh release upload "$TAG" apks/* --clobber
+
+  publish:
+    name: Publish
+    # Once both apps are on it, the draft becomes the latest release the apps update to.
+    needs: [plan, windows, android]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ needs.plan.outputs.tag }}
+      VERSION: ${{ needs.plan.outputs.version }}
+      NOTES: ${{ needs.plan.outputs.notes }}
+    steps:
+      - name: Checksums
+        run: |
+          mkdir downloads
+          gh release download "$TAG" --dir downloads --pattern '*.exe' --pattern '*.apk'
+          (cd downloads && sha256sum -- *) > "webnovel-hub-$TAG-sha256.txt"
+          gh release upload "$TAG" "webnovel-hub-$TAG-sha256.txt" --clobber
+      - name: Release text, and publish
+        run: |
+          {
+            if [ -n "$NOTES" ]; then printf '%s\n\n' "$NOTES"; fi
+            echo "**Windows:** the app offers this update itself. For a new install, download \`Webnovel.Hub_${VERSION}_x64-setup.exe\` and run it (installs for your user, no admin prompt)."
+            echo
+            echo "**Android:** install over the version you have to keep your library. Most phones want \`webnovel-hub-$TAG-android-arm64-v8a.apk\`; if unsure, take \`…-universal.apk\`."
+            echo
+            echo "Checksums are in \`webnovel-hub-$TAG-sha256.txt\`."
+          } > notes.md
+          gh release edit "$TAG" --notes-file notes.md --draft=false --latest

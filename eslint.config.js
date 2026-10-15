@@ -48,6 +48,7 @@ export default defineConfig([
   {
     files: [
       '*.js',
+      'scripts/**/*.mjs',
       'packages/shared/**/*.ts',
       'packages/core/**/*.ts',
       'packages/platform-node/**/*.ts',

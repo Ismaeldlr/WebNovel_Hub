@@ -53,6 +53,7 @@ change. Android Studio then runs the app on a phone or an emulator.
 | `npm run format`                        | Formats every file with Prettier.                                  |
 | `npm run scrape -- <novel URL>`         | Runs a site's adapter against the real site and prints the result. |
 | `npm run scrape -- --samples [site...]` | The same, for one sample novel per site.                           |
+| `npm run set-version -- 1.2.3`          | Sets the apps' version everywhere it is written.                   |
 
 Please run `npm run check` before opening a pull request.
 
@@ -89,6 +90,26 @@ as in a fresh clone.
 - Keep each pull request to one change, and describe what it changes and why.
 - Write commit messages in the imperative ("Add NovelBin", "Fix chapter order on Royal Road").
 - New behaviour comes with tests.
+
+## Releasing
+
+A release is a pull request that changes the version:
+
+1. Run `npm run set-version -- 1.2.3` and commit the result ("Webnovel Hub 1.2.3").
+2. Optionally, give the pull request a `## Release notes` section: it opens the release's
+   text, before the download instructions.
+3. Merge it. The Release workflow tags the merge `v1.2.3`, builds the Windows installer and
+   the Android APKs, and publishes them as the latest release, which installed apps offer as
+   an update.
+
+Pull requests that leave the version alone release nothing. If a release fails, fix the cause
+and run the Release workflow by hand (Actions, Release, Run workflow) with the version.
+
+The workflow needs the signing keys as repository secrets: `TAURI_SIGNING_PRIVATE_KEY` (the
+updater key; `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` too if it has one), and the Android upload key
+as `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and
+`ANDROID_KEY_PASSWORD`. Keep the keys backed up privately: without them, installed apps can't
+update.
 
 ## License
 
