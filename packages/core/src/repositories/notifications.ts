@@ -9,10 +9,12 @@ export const CHECKED_ENTRIES = `(e.status IN ('reading', 'following') OR e.notif
 
 /**
  * Whether the entry `e` wants its new chapters announced: its own choice, else whether
- * `novels` (an SQL parameter holding the notify_novels preference) takes in its status.
+ * `novels` (an SQL parameter holding the notify_novels preference) takes in its status. A
+ * hidden novel is quiet unless it chose otherwise.
  */
 export const wantsNewChapters = (novels: string) =>
-  `coalesce(e.notify, ${novels} = 'following' AND e.status IN ('reading', 'following'))`;
+  `coalesce(e.notify, ${novels} = 'following' AND e.status IN ('reading', 'following')
+                      AND e.hidden = 0)`;
 
 /** Of the novels `ids`, those whose new chapters are announced. */
 export async function novelsToAnnounce(

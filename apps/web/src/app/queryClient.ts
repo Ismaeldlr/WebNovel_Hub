@@ -17,6 +17,8 @@ export const queryKeys = {
   libraryStats: ['library', 'stats'] as const,
   libraryTags: ['library', 'tags'] as const,
   newChaptersCount: ['library', 'new-chapters-count'] as const,
+  /** The reader's shelves with their counts (under `library`, so library changes refresh them). */
+  shelves: ['library', 'shelves'] as const,
   /** The novels with their own choice about notifications (Settings). */
   notifyChoices: ['library', 'notify'] as const,
   /** A novel's page; its chapter pages and update check live under the same prefix. */

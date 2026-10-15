@@ -18,6 +18,7 @@ import {
   READER_PREFERENCE_LIMITS,
   RECENT_IMPORTS_LIMITS,
   SEARCH_LIMITS,
+  SHELF_LIMITS,
   SOURCE_KEY_PATTERN,
   TERM_TEXT_MAX,
   THEME_PREFERENCES,
@@ -39,6 +40,7 @@ import type { ImportService } from '../services/imports.js';
 import type { LibraryService } from '../services/library.js';
 import { MANAGEMENT_MESSAGES, type NovelManagementService } from '../services/novel-management.js';
 import type { PreferencesService } from '../services/preferences.js';
+import { SHELF_MESSAGES, type ShelfService } from '../services/shelves.js';
 import { READER_MESSAGES, type ReaderService } from '../services/reader.js';
 import { TERM_MESSAGES, type TermService } from '../services/terms.js';
 import type { UpdateService } from '../services/updates.js';
@@ -69,6 +71,7 @@ export interface Services {
   management: NovelManagementService;
   accounts: AccountService;
   terms: TermService;
+  shelves: ShelfService;
 }
 
 const page = positiveInt('page must be a whole number of 1 or more.', { max: 1_000_000 });
@@ -97,6 +100,8 @@ const libraryQuery = z.object({
   favorite: booleanFlag('favorite'),
   unread: booleanFlag('unread'),
   tag: searchText('tag'),
+  // A shelf's id or `hidden`; an unknown one matches nothing.
+  shelf: z.string({ error: 'shelf must be a shelf id or hidden.' }).max(64).optional(),
   sort: z
     .enum(LIBRARY_SORTS, { error: `sort must be one of ${LIBRARY_SORTS.join(', ')}.` })
     .optional(),
@@ -111,6 +116,38 @@ const statusBody = z.object(
 const favoriteBody = z.object(
   { isFavorite: z.boolean({ error: 'isFavorite must be true or false.' }) },
   { error: 'isFavorite must be true or false.' },
+);
+
+const hiddenBody = z.object(
+  { hidden: z.boolean({ error: 'hidden must be true or false.' }) },
+  { error: 'hidden must be true or false.' },
+);
+
+const SHELF_IDS_MESSAGE = 'shelfIds must be a list of shelf ids.';
+const shelfIdsBody = z.object(
+  {
+    shelfIds: z
+      .array(z.string({ error: SHELF_IDS_MESSAGE }).max(64), { error: SHELF_IDS_MESSAGE })
+      .max(SHELF_LIMITS.count, SHELF_IDS_MESSAGE),
+  },
+  { error: SHELF_IDS_MESSAGE },
+);
+
+const SHELF_NAME_MESSAGE = `Give the shelf a name of up to ${SHELF_LIMITS.name} characters.`;
+const shelfBody = z.strictObject(
+  {
+    name: z
+      .string({ error: SHELF_NAME_MESSAGE })
+      .trim()
+      .min(1, SHELF_NAME_MESSAGE)
+      .max(SHELF_LIMITS.name, SHELF_NAME_MESSAGE),
+  },
+  { error: 'Send the shelf as a JSON object with a name.' },
+);
+
+const shelfOrderBody = z.object(
+  { ids: z.array(z.string().max(64)).max(SHELF_LIMITS.count) },
+  { error: 'Send the shelves in their new order as ids.' },
 );
 
 const NOTIFY_MESSAGE = 'notify must be true, false or null (as the settings say).';
@@ -228,6 +265,7 @@ const termUpdateBody = z
   });
 
 const termId = (request: RouteRequest) => idParam(request.params.id, TERM_MESSAGES.notFound);
+const shelfId = (request: RouteRequest) => idParam(request.params.id, SHELF_MESSAGES.notFound);
 
 export const COVER_MESSAGES = {
   missing: 'Choose an image for the cover.',
@@ -459,6 +497,7 @@ export function createRoutes(s: Services): Route[] {
             favorite: q.favorite ?? null,
             unread: q.unread ?? null,
             tag: q.tag,
+            shelf: q.shelf ?? null,
             q: q.q,
             sort: q.sort ?? DEFAULT_LIBRARY_SORT,
             page: q.page ?? 1,
@@ -505,6 +544,61 @@ export function createRoutes(s: Services): Route[] {
       async handle(request) {
         const { isFavorite } = parseBody(favoriteBody, request.body);
         return ok({ item: await s.library.setFavorite(novelId(request), isFavorite) });
+      },
+    },
+    {
+      method: 'PATCH',
+      path: '/library/:id/hidden',
+      async handle(request) {
+        const { hidden } = parseBody(hiddenBody, request.body);
+        return ok({ item: await s.library.setHidden(novelId(request), hidden) });
+      },
+    },
+    {
+      method: 'PUT',
+      path: '/library/:id/shelves',
+      async handle(request) {
+        const { shelfIds } = parseBody(shelfIdsBody, request.body);
+        return ok({ item: await s.library.setShelves(novelId(request), shelfIds) });
+      },
+    },
+
+    // Shelves
+    {
+      method: 'GET',
+      path: '/shelves',
+      handle: async () => ok({ shelves: await s.shelves.list() }),
+    },
+    {
+      method: 'POST',
+      path: '/shelves',
+      async handle(request) {
+        const { name } = parseBody(shelfBody, request.body);
+        return ok({ shelf: await s.shelves.create(name) }, 201);
+      },
+    },
+    {
+      method: 'PUT',
+      path: '/shelves/order',
+      async handle(request) {
+        const { ids } = parseBody(shelfOrderBody, request.body);
+        return ok({ shelves: await s.shelves.reorder(ids) });
+      },
+    },
+    {
+      method: 'PATCH',
+      path: '/shelves/:id',
+      async handle(request) {
+        const { name } = parseBody(shelfBody, request.body);
+        return ok({ shelf: await s.shelves.rename(shelfId(request), name) });
+      },
+    },
+    {
+      method: 'DELETE',
+      path: '/shelves/:id',
+      async handle(request) {
+        await s.shelves.remove(shelfId(request));
+        return ok(null);
       },
     },
     {

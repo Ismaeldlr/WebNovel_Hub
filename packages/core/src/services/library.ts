@@ -19,6 +19,8 @@ import {
   updateLibraryEntry,
 } from '../repositories/library.js';
 import { deleteNovelRow } from '../repositories/novel-management.js';
+import { existingShelves, setNovelShelves } from '../repositories/shelves.js';
+import { SHELF_MESSAGES } from './shelves.js';
 
 export const LIBRARY_MESSAGES = {
   notInLibrary: "This novel isn't in your library.",
@@ -35,6 +37,13 @@ export interface LibraryService {
   setNotify(novelId: string, notify: boolean | null): Promise<LibraryItem>;
   /** The novels that made their own choice about notifications. */
   notifyChoices(): Promise<NovelNotifyChoice[]>;
+  /**
+   * Hides the novel from the library's lists (or shows it again). Hiding also drops an
+   * "always notify" choice, so a hidden novel is quiet until the reader asks otherwise.
+   */
+  setHidden(novelId: string, hidden: boolean): Promise<LibraryItem>;
+  /** Puts the novel on exactly these shelves. */
+  setShelves(novelId: string, shelfIds: string[]): Promise<LibraryItem>;
   stats(): Promise<LibraryStats>;
   /** Every tag in the library, for the tag filter. */
   tags(): Promise<LibraryTag[]>;
@@ -82,6 +91,36 @@ export function createLibraryService(db: Database): LibraryService {
     },
 
     notifyChoices: () => listNotifyChoices(db),
+
+    async setHidden(novelId, hidden) {
+      const found = await db.withTransaction(async (tx) => {
+        if (!(await updateLibraryEntry(tx, novelId, { hidden }))) return false;
+        if (hidden) {
+          await tx.query(
+            'UPDATE library_entries SET notify = NULL WHERE novel_id = $1 AND notify = 1',
+            [novelId],
+          );
+        }
+        return true;
+      });
+      if (!found) throw new AppError(404, LIBRARY_MESSAGES.notInLibrary);
+      return itemOrNotFound(novelId);
+    },
+
+    async setShelves(novelId, shelfIds) {
+      const ids = [...new Set(shelfIds)];
+      await db.withTransaction(async (tx) => {
+        if ((await existingShelves(tx, ids)).length !== ids.length) {
+          throw new AppError(404, SHELF_MESSAGES.notFound);
+        }
+        const { rows } = await tx.query('SELECT 1 FROM library_entries WHERE novel_id = $1', [
+          novelId,
+        ]);
+        if (rows.length === 0) throw new AppError(404, LIBRARY_MESSAGES.notInLibrary);
+        await setNovelShelves(tx, novelId, ids);
+      });
+      return itemOrNotFound(novelId);
+    },
 
     stats: () => libraryStats(db),
     tags: () => listLibraryTags(db),

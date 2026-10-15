@@ -179,3 +179,37 @@ export function useSetNotify() {
       toast({ title: told.title, ...(told.description ? { description: told.description } : {}) }),
   });
 }
+
+/** Hides the novel from the library's lists, or shows it again; the toast says what it means. */
+export function useSetHidden() {
+  const toast = useToast();
+  return useLibraryUpdate({
+    request: ({ novelId, hidden }: { novelId: string; hidden: boolean; title: string }) =>
+      libraryApi.setHidden(novelId, hidden),
+    optimistic: ({ hidden }) => ({ hidden }),
+    failure: "Couldn't change where it shows",
+    // The counts, the shelves' and the sidebar's NEW count among them.
+    stale: queryKeys.library,
+    onSuccess: (_item, { hidden, title }) =>
+      toast(
+        hidden
+          ? {
+              title: `${title} is hidden`,
+              description:
+                'It shows only under Hidden in My Library, and its new chapters stay quiet.',
+            }
+          : { title: `${title} is back in your library` },
+      ),
+  });
+}
+
+/** Puts the novel on exactly these shelves. */
+export function useSetShelves() {
+  return useLibraryUpdate({
+    request: ({ novelId, shelfIds }: { novelId: string; shelfIds: string[] }) =>
+      libraryApi.setShelves(novelId, shelfIds),
+    optimistic: ({ shelfIds }) => ({ shelfIds }),
+    failure: "Couldn't change its shelves",
+    stale: queryKeys.shelves,
+  });
+}

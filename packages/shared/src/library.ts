@@ -38,6 +38,11 @@ export interface LibraryQuery {
   unread?: boolean;
   /** One tag the novel must have, ignoring case (omitted: any). */
   tag?: string;
+  /**
+   * A shelf's id, or `hidden` for the hidden novels. Omitted: the whole library, hidden
+   * novels left out (as on any shelf).
+   */
+  shelf?: string;
   sort?: LibrarySort;
   /** Words that must each appear in the title or the author. */
   q?: string;
@@ -75,9 +80,11 @@ export interface LibraryItemResponse {
   item: LibraryItem;
 }
 
-/** Response of GET /library/stats: the library page's summary. */
+/** Response of GET /library/stats: the library page's summary, hidden novels left out. */
 export interface LibraryStats {
   total: number;
+  /** Hidden novels, which no other count includes. */
+  hidden: number;
   byStatus: Record<LibraryStatus, number>;
   favorites: number;
   /** Unread NEW chapters across the library, and how many novels have some. */
@@ -103,4 +110,28 @@ export interface NovelNotifyChoice {
 /** Response of GET /library/notify: the novels with their own choice, by title. */
 export interface NotifyChoicesResponse {
   novels: NovelNotifyChoice[];
+}
+
+/** GET /library?shelf= for the hidden novels. */
+export const HIDDEN_SHELF = 'hidden';
+
+/** Limits of shelves: how long a name can be, and how many shelves there can be. */
+export const SHELF_LIMITS = { name: 40, count: 50 } as const;
+
+/** A shelf of the reader's own, with how many novels it holds (hidden ones left out). */
+export interface Shelf {
+  id: string;
+  /** Any text, emojis too. */
+  name: string;
+  novels: number;
+}
+
+/** Response of GET /shelves (in the reader's order), and of PUT /shelves/order. */
+export interface ShelvesResponse {
+  shelves: Shelf[];
+}
+
+/** Response of POST /shelves (201) and PATCH /shelves/:id. */
+export interface ShelfResponse {
+  shelf: Shelf;
 }

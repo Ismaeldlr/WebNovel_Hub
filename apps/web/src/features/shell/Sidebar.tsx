@@ -1,13 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
-import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
-import { type Ref, useId } from 'react';
-import { Link, NavLink } from 'react-router';
-import { libraryApi } from '../../api/catalog';
-import { HOME_PATH, NAV_SECTIONS } from '../../app/navigation';
+import { HIDDEN_SHELF } from '@webnovel-hub/shared';
+import { ChevronDown, EyeOff, PanelLeftClose, PanelLeftOpen, Settings2, X } from 'lucide-react';
+import { type ReactNode, type Ref, useId, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router';
+import { libraryApi, shelvesApi } from '../../api/catalog';
+import { HOME_PATH, NAV_SECTIONS, libraryShelfPath } from '../../app/navigation';
 import { queryKeys } from '../../app/queryClient';
 import { BrandMark } from '../../components/BrandMark';
 import { IconButton } from '../../components/ui';
 import { plural } from '../../lib/format';
+import { EditShelvesDialog } from '../library/Shelves';
 import styles from './Sidebar.module.css';
 
 /**
@@ -85,7 +87,7 @@ export function Sidebar({
               </p>
               <ul aria-labelledby={labelId} className={styles.list}>
                 {section.items.map(({ path, label, icon: Icon }) => (
-                  <li key={path}>
+                  <li key={path} className={path === HOME_PATH ? styles.withShelves : undefined}>
                     <NavLink
                       to={path}
                       className={styles.link}
@@ -103,6 +105,7 @@ export function Sidebar({
                         </span>
                       )}
                     </NavLink>
+                    {path === HOME_PATH && !collapsed && <ShelvesNav onNavigate={onNavigate} />}
                   </li>
                 ))}
               </ul>
@@ -128,5 +131,107 @@ export function Sidebar({
         </div>
       )}
     </aside>
+  );
+}
+
+/** Whether the shelves under My Library are shown, kept for the next visit. */
+const SHELVES_OPEN_KEY = 'webnovel-hub.sidebar-shelves';
+
+function shelvesOpenAtFirst(): boolean {
+  try {
+    return localStorage.getItem(SHELVES_OPEN_KEY) === 'open';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The shelves under My Library, folded away until the arrow opens them: each shelf, the
+ * hidden novels once there are some, and a way to edit the shelves. They load only while
+ * open.
+ */
+function ShelvesNav({ onNavigate }: { onNavigate: () => void }) {
+  const [open, setOpen] = useState(shelvesOpenAtFirst);
+  const [editing, setEditing] = useState(false);
+  const listId = useId();
+  const location = useLocation();
+  const shelves = useQuery({
+    queryKey: queryKeys.shelves,
+    queryFn: ({ signal }) => shelvesApi.list(signal),
+    enabled: open,
+  });
+  const stats = useQuery({
+    queryKey: queryKeys.libraryStats,
+    queryFn: ({ signal }) => libraryApi.stats(signal),
+    enabled: open,
+  });
+  const shown =
+    location.pathname === HOME_PATH ? new URLSearchParams(location.search).get('shelf') : null;
+
+  const toggle = () => {
+    setOpen(!open);
+    try {
+      localStorage.setItem(SHELVES_OPEN_KEY, open ? 'closed' : 'open');
+    } catch {
+      // Not kept for the next visit.
+    }
+  };
+
+  const link = (shelf: string, label: string, count: number, icon?: ReactNode) => (
+    <li key={shelf}>
+      <Link
+        to={libraryShelfPath(shelf)}
+        className={styles.link}
+        data-shelf
+        aria-current={shown === shelf ? 'page' : undefined}
+        onClick={onNavigate}
+      >
+        {icon}
+        <span className={styles.label}>{label}</span>
+        <span className={styles.shelfCount}>{count.toLocaleString()}</span>
+      </Link>
+    </li>
+  );
+
+  return (
+    <>
+      <button
+        type="button"
+        className={styles.shelvesToggle}
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label="Shelves"
+        title={open ? 'Hide your shelves' : 'Show your shelves'}
+        onClick={toggle}
+      >
+        <ChevronDown aria-hidden="true" />
+      </button>
+      {open && (
+        <ul id={listId} className={styles.shelves} aria-label="Shelves">
+          {shelves.data?.map((shelf) => link(shelf.id, shelf.name, shelf.novels))}
+          {(stats.data?.hidden ?? 0) > 0 &&
+            link(
+              HIDDEN_SHELF,
+              'Hidden',
+              stats.data!.hidden,
+              <EyeOff className={styles.shelfIcon} aria-hidden="true" />,
+            )}
+          <li>
+            <button
+              type="button"
+              className={styles.link}
+              data-shelf
+              onClick={() => setEditing(true)}
+            >
+              <Settings2 className={styles.shelfIcon} aria-hidden="true" />
+              <span className={styles.label}>
+                {shelves.data?.length === 0 ? 'Make a shelf' : 'Edit shelves'}
+              </span>
+            </button>
+          </li>
+        </ul>
+      )}
+      <EditShelvesDialog open={editing} onClose={() => setEditing(false)} />
+    </>
   );
 }

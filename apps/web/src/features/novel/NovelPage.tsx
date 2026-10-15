@@ -1,18 +1,28 @@
 import type { NovelDetail } from '@webnovel-hub/shared';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, ExternalLink, SearchX } from 'lucide-react';
+import { BookOpen, EyeOff, ExternalLink, SearchX } from 'lucide-react';
 import { type RefObject, useRef } from 'react';
 import { Link, useParams } from 'react-router';
 import { novelsApi } from '../../api/catalog';
 import { ApiError } from '../../api/client';
-import { libraryTagPath } from '../../app/navigation';
+import { libraryShelfPath, libraryTagPath } from '../../app/navigation';
 import { queryKeys } from '../../app/queryClient';
 import { Cover, CoverBackdrop } from '../../components/Cover';
-import { Badge, ButtonLink, EmptyState, ErrorState, Spinner } from '../../components/ui';
+import {
+  Badge,
+  Button,
+  ButtonLink,
+  EmptyState,
+  ErrorState,
+  Notice,
+  Spinner,
+} from '../../components/ui';
 import { formatDate, formatRelativeTime, plural } from '../../lib/format';
 import { usePageBar, usePageTitle, useUnderTopBar } from '../../lib/hooks';
 import { progress, readingTarget } from '../../lib/reading';
 import { FavoriteButton, NotifyButton, StatusSelect } from '../library/LibraryControls';
+import { useSetHidden } from '../library/libraryActions';
+import { useShelves } from '../library/shelfActions';
 import { ChapterList } from './ChapterList';
 import { Description } from './Description';
 import styles from './NovelPage.module.css';
@@ -83,6 +93,9 @@ function NovelView({
   const { percent } = progress(library, novel.totalChapters);
   const updates = useUpdateCheck(novel);
   const fullFetch = useFullFetch(novel);
+  const setHidden = useSetHidden();
+  // Its shelves, in the reader's order.
+  const shelves = (useShelves().data ?? []).filter((shelf) => library?.shelfIds.includes(shelf.id));
 
   const notes = [
     library?.lastReadAt && `Last read ${formatRelativeTime(library.lastReadAt)}`,
@@ -204,6 +217,24 @@ function NovelView({
           <MoreActions novel={novel} fullFetch={fullFetch} className={styles.action} />
         </div>
       </section>
+      {library?.hidden && (
+        <Notice as="div" icon={<EyeOff aria-hidden="true" />}>
+          <p>
+            Hidden from your library: it shows only under Hidden, and its new chapters stay quiet.
+          </p>
+          <div className={styles.noticeActions}>
+            <Button
+              size="sm"
+              busy={setHidden.isPending}
+              onClick={() =>
+                setHidden.mutate({ novelId: novel.id, hidden: false, title: novel.title })
+              }
+            >
+              Show in library
+            </Button>
+          </div>
+        </Notice>
+      )}
       <UpdateCheckStatus novel={novel} state={updates} />
       <FullFetchStatus novel={novel} state={fullFetch} />
 
@@ -215,6 +246,21 @@ function NovelView({
           <Description text={novel.description} />
         ) : (
           <p className={styles.muted}>{novel.source.name} gives no description for this novel.</p>
+        )}
+        {shelves.length > 0 && (
+          <ul className={styles.tags} aria-label="Shelves">
+            {shelves.map((shelf) => (
+              <li key={shelf.id}>
+                <Link
+                  to={libraryShelfPath(shelf.id)}
+                  className={styles.tagLink}
+                  aria-label={`${shelf.name}: show the shelf`}
+                >
+                  <Badge tone="accent">{shelf.name}</Badge>
+                </Link>
+              </li>
+            ))}
+          </ul>
         )}
         {novel.tags.length > 0 && (
           <ul className={styles.tags} aria-label="Tags">

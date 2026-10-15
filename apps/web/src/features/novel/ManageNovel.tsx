@@ -1,5 +1,15 @@
 import { NOVEL_DETAIL_LIMITS, type NovelDetail } from '@webnovel-hub/shared';
-import { BookDown, Ellipsis, FileDown, ImageUp, PencilLine, Trash2 } from 'lucide-react';
+import {
+  BookDown,
+  Ellipsis,
+  Eye,
+  EyeOff,
+  FileDown,
+  ImageUp,
+  LibraryBig,
+  PencilLine,
+  Trash2,
+} from 'lucide-react';
 import { type FormEvent, useId, useRef, useState } from 'react';
 import {
   Button,
@@ -14,6 +24,8 @@ import {
 } from '../../components/ui';
 import { plural } from '../../lib/format';
 import { useExportEpub } from '../exports/useExportEpub';
+import { useSetHidden } from '../library/libraryActions';
+import { NovelShelvesDialog } from '../library/Shelves';
 import { checkCoverFile, useDeleteNovel, useUpdateDetails, useUploadCover } from './manageActions';
 import styles from './NovelPage.module.css';
 import type { FullFetchState } from './useFullFetch';
@@ -26,9 +38,9 @@ const parseTags = (text: string) =>
     .filter(Boolean);
 
 /**
- * "More": the novel's less frequent actions in one menu (a sheet on phones): fetch all
- * chapters, export, edit details, change cover and delete. Only the novel's own details
- * can be edited, never chapter text.
+ * "More": the novel's less frequent actions in one menu (a sheet on phones): its shelves,
+ * hiding it, fetch all chapters, export, edit details, change cover and delete. Only the
+ * novel's own details can be edited, never chapter text.
  */
 export function MoreActions({
   novel,
@@ -41,6 +53,9 @@ export function MoreActions({
 }) {
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [shelving, setShelving] = useState(false);
+  const setHidden = useSetHidden();
+  const { library } = novel;
   const { storedChapters, totalChapters } = fullFetch;
   const cover = useUploadCover(novel.id);
   const exportEpub = useExportEpub({ novel, storedChapters, totalChapters });
@@ -66,6 +81,22 @@ export function MoreActions({
           </Button>
         )}
       >
+        {library && (
+          <>
+            <MenuItem icon={<LibraryBig aria-hidden="true" />} onSelect={() => setShelving(true)}>
+              Shelves…
+            </MenuItem>
+            <MenuItem
+              icon={library.hidden ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}
+              onSelect={() =>
+                setHidden.mutate({ novelId: novel.id, hidden: !library.hidden, title: novel.title })
+              }
+            >
+              {library.hidden ? 'Show in library' : 'Hide from library'}
+            </MenuItem>
+            <MenuSeparator />
+          </>
+        )}
         {canFetchAll && (
           <MenuItem icon={<BookDown aria-hidden="true" />} onSelect={fullFetch.start}>
             Fetch all chapters
@@ -110,6 +141,15 @@ export function MoreActions({
         }}
       />
       <EditDetailsDialog novel={novel} open={editing} onClose={() => setEditing(false)} />
+      {library && (
+        <NovelShelvesDialog
+          novelId={novel.id}
+          title={novel.title}
+          shelfIds={library.shelfIds}
+          open={shelving}
+          onClose={() => setShelving(false)}
+        />
+      )}
       <ConfirmDialog
         open={deleting}
         title={`Delete “${novel.title}”?`}

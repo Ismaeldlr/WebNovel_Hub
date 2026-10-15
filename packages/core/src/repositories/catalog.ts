@@ -11,9 +11,12 @@ import {
   toNovelSummary,
 } from './novels.js';
 
+// Hidden novels stay out of the search, as out of the library's lists.
 const FROM_NOVELS = `
   FROM novels n
-  JOIN source_sites s ON s.key = n.source`;
+  JOIN source_sites s ON s.key = n.source
+  LEFT JOIN library_entries e ON e.novel_id = n.id`;
+const SHOWN = 'coalesce(e.hidden, 0) = 0';
 
 /**
  * The global search: at most `limit` novels whose title or author contains every word of
@@ -26,7 +29,7 @@ export async function searchCatalog(
   query: { q: string; limit: number },
 ): Promise<{ results: SearchResult[]; total: number }> {
   const { values, param } = queryValues();
-  const where = titleOrAuthorMatch(query.q, param) ?? '1 = 1';
+  const where = `${SHOWN} AND ${titleOrAuthorMatch(query.q, param) ?? '1 = 1'}`;
   const counted = [...values];
   const phrase = escapeLike(searchKey(query.q));
   const exact = param(phrase);

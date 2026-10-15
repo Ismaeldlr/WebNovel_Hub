@@ -25,6 +25,7 @@ import { createNovelManagementService } from './services/novel-management.js';
 import { createPrefetcher } from './services/prefetch.js';
 import { createPreferencesService } from './services/preferences.js';
 import { createReaderService } from './services/reader.js';
+import { createShelfService } from './services/shelves.js';
 import { createTermService } from './services/terms.js';
 import { createUpdateService } from './services/updates.js';
 
@@ -129,6 +130,7 @@ export async function createCore(options: CoreOptions): Promise<Core> {
       management: createNovelManagementService(db),
       accounts: createAccountService(registry, fetcher),
       terms: createTermService(db),
+      shelves: createShelfService(db),
     }),
     logger,
   );

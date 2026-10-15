@@ -18,6 +18,10 @@ export interface LibraryState {
    * (ReaderPreferences.notifyNovels).
    */
   notify: boolean | null;
+  /** Kept out of the library's lists, search and counts; shown in its Hidden view. */
+  hidden: boolean;
+  /** The reader's shelves it is on (Shelf ids). */
+  shelfIds: string[];
   addedAt: string;
   lastReadAt: string | null;
 }

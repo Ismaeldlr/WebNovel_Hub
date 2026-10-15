@@ -5,13 +5,16 @@ import { getPlatform } from '../../platform';
 export const checkedByStatus = (status: LibraryStatus) =>
   status === 'reading' || status === 'following';
 
-/** Whether a novel's new chapters are announced when it hasn't chosen for itself. */
-export const notifiedByDefault = (status: LibraryStatus, preferences: ReaderPreferences) =>
-  preferences.notifyNovels === 'following' && checkedByStatus(status);
+/**
+ * Whether a novel's new chapters are announced when it hasn't chosen for itself: never
+ * while it is hidden.
+ */
+export const notifiedByDefault = (library: LibraryState, preferences: ReaderPreferences) =>
+  preferences.notifyNovels === 'following' && checkedByStatus(library.status) && !library.hidden;
 
 /** Whether the novel's new chapters are announced: its own choice, else the settings'. */
 export const novelNotified = (library: LibraryState, preferences: ReaderPreferences) =>
-  library.notify ?? notifiedByDefault(library.status, preferences);
+  library.notify ?? notifiedByDefault(library, preferences);
 
 /**
  * What to save for turning the novel's notifications on or off: no choice of its own
@@ -21,7 +24,7 @@ export const notifyChoice = (
   on: boolean,
   library: LibraryState,
   preferences: ReaderPreferences,
-): boolean | null => (on === notifiedByDefault(library.status, preferences) ? null : on);
+): boolean | null => (on === notifiedByDefault(library, preferences) ? null : on);
 
 /**
  * Android 13+: asks to show notifications if the reader hasn't answered yet. Resolves to

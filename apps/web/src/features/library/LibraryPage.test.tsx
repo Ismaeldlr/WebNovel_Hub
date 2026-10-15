@@ -121,9 +121,9 @@ describe('My Library', () => {
   it('invites the reader to add a novel when the library is empty', async () => {
     signedIn();
     renderApp('/library');
-    expect(await screen.findByRole('heading', { name: 'Your shelves are empty' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Your library is empty' })).toBeVisible();
     expect(screen.getByRole('link', { name: 'Add a novel' })).toHaveAttribute('href', '/add');
-    // Nothing to filter on empty shelves.
+    // Nothing to filter in an empty library.
     expect(screen.queryByRole('region', { name: 'Filter and sort your library' })).toBeNull();
   });
 });

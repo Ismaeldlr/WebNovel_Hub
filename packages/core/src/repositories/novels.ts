@@ -32,6 +32,9 @@ export interface LibraryStateRow {
   status: LibraryStatus | null;
   is_favorite: number | null;
   notify: number | null;
+  hidden: number | null;
+  /** JSON array of shelf ids (an empty one without an entry). */
+  shelf_ids: string;
   last_read_chapter_number: number | null;
   furthest_chapter_number: number | null;
   added_at: string | null;
@@ -45,8 +48,10 @@ export const NOVEL_SUMMARY_COLUMNS = `
   n.latest_chapter_at`;
 
 export const LIBRARY_STATE_COLUMNS = `
-  e.status, e.is_favorite, e.notify, e.last_read_chapter_number, e.furthest_chapter_number,
-  e.added_at, e.last_read_at,
+  e.status, e.is_favorite, e.notify, e.hidden, e.last_read_chapter_number,
+  e.furthest_chapter_number, e.added_at, e.last_read_at,
+  (SELECT json_group_array(sn.shelf_id) FROM shelf_novels sn WHERE sn.novel_id = n.id
+  ) AS shelf_ids,
   (SELECT count(*) FROM new_chapters u WHERE u.novel_id = n.id AND u.seen_at IS NULL
   ) AS new_chapter_count`;
 
@@ -94,6 +99,8 @@ export function toLibraryState(row: LibraryStateRow): LibraryState | null {
     furthestChapterNumber: row.furthest_chapter_number,
     newChapterCount: row.new_chapter_count,
     notify: row.notify === null ? null : bool(row.notify),
+    hidden: bool(row.hidden),
+    shelfIds: parseJson<string[]>(row.shelf_ids, []),
     addedAt: row.added_at,
     lastReadAt: row.last_read_at,
   };
