@@ -246,12 +246,20 @@ export class SourceSession {
 
   /**
    * A page as a web view shows it once its scripts ran. When `waitFor` doesn't appear in
-   * time, the site counts as changed. `reuse` works as for `get`. With `webViewAgent`, the
-   * web view introduces itself as the browser it is, for sites that only answer browsers.
+   * time, the site counts as changed, or as limiting requests when `challenge` is there
+   * instead: a check the web view didn't pass on its own. `reuse` works as for `get`. With
+   * `webViewAgent`, the web view introduces itself as the browser it is, for sites that
+   * only answer browsers.
    */
   async render(
     url: string,
-    options: { waitFor?: string; timeout?: number; reuse?: boolean; webViewAgent?: boolean } = {},
+    options: {
+      waitFor?: string;
+      challenge?: string;
+      timeout?: number;
+      reuse?: boolean;
+      webViewAgent?: boolean;
+    } = {},
   ): Promise<Page> {
     const cached = options.reuse ? this.pages.get(url) : undefined;
     if (cached) return cached;
@@ -277,8 +285,14 @@ export class SourceSession {
     }
     this.signal?.throwIfAborted();
     checkStatus(url, page.status, {});
-    if (options.waitFor && !parse(page.html).querySelector(options.waitFor)) {
-      throw new StructureChanged(`${JSON.stringify(options.waitFor)} did not appear on ${url}`);
+    if (options.waitFor) {
+      const shown = parse(page.html);
+      if (!shown.querySelector(options.waitFor)) {
+        if (options.challenge && shown.querySelector(options.challenge)) {
+          throw new RateLimited(`${url} showed a challenge that did not pass on its own`);
+        }
+        throw new StructureChanged(`${JSON.stringify(options.waitFor)} did not appear on ${url}`);
+      }
     }
     const rendered = { url: page.url, status: page.status, text: page.html };
     this.pages.set(url, rendered);

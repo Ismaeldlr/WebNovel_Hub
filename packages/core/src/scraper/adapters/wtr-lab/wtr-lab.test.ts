@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { FakeSite, PNG, fixture, hasFixtures, jsonResponse } from '../../../../test/sites.js';
 import { htmlToText } from '../../../epub/normalize.js';
-import { PermanentError, SignInRequired, StructureChanged, UnsupportedUrl } from '../../errors.js';
+import {
+  PermanentError,
+  RateLimited,
+  SignInRequired,
+  StructureChanged,
+  UnsupportedUrl,
+} from '../../errors.js';
 import { HostThrottle, SourceSession } from '../../session.js';
 import { WtrLabAdapter } from './index.js';
 
@@ -121,6 +127,19 @@ describe.skipIf(!hasFixtures)('WTR Lab pages', () => {
     await expect(
       adapter.fetchChapter(fake.session(), { url, title: 'x', publishedAt: null }),
     ).rejects.toThrow(StructureChanged);
+  });
+
+  it('backs off when the site asks for a security check instead of the text', async () => {
+    const fake = site();
+    const url = `${NOVEL}/chapter-2`;
+    fake.rendered.set(
+      url,
+      '<div class="chapter-body"><div class="turnstile-challenge">Security Check Required' +
+        '<input type="hidden" name="cf-turnstile-response"></div></div>',
+    );
+    await expect(
+      adapter.fetchChapter(fake.session(), { url, title: 'x', publishedAt: null }),
+    ).rejects.toThrow(RateLimited);
   });
 
   describe('past the chapters guests may read', () => {

@@ -36,7 +36,14 @@ export const CHAPTER_TEXT = '.wtr-line';
 export const CHAPTER_LOCKED = 'a[href*="service=web"]';
 /** Waited for: the text, or the notice that replaces it. */
 export const CHAPTER_LOADED = `${CHAPTER_CONTENT} ${CHAPTER_TEXT}, ${CHAPTER_CONTENT} ${CHAPTER_LOCKED}`;
-export const CHAPTER_LOAD_TIMEOUT = 45_000;
+/**
+ * Instead of the text, after "unusual reading activity" from the reader's IP address: a
+ * Cloudflare Turnstile check. Unless it passes on its own while the page loads, fetching
+ * backs off as from any refusal.
+ */
+export const CHAPTER_CHALLENGE = `${CHAPTER_CONTENT} .turnstile-challenge, ${CHAPTER_CONTENT} [name="cf-turnstile-response"]`;
+/** A first load can take half a minute (October 2026). */
+export const CHAPTER_LOAD_TIMEOUT = 60_000;
 /** The chapter in the site's machine (Google) translation, which guests may read. */
 export const machineTranslationUrl = (chapterUrl: string) => `${chapterUrl}?service=web`;
 
