@@ -1,6 +1,6 @@
 [package]
 name = "webnovel-hub"
-version = "0.3.0"
+version = "0.3.1"
 description = "Webnovel Hub for Windows"
 edition = "2021"
 publish = false
