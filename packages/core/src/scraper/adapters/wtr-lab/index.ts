@@ -7,6 +7,9 @@
 // to be signed in (the reader signs in in a window of the app, whose cookies the rendered
 // pages share), or the reader chose the site's machine translation for those chapters.
 //
+// After a lot of reading from one IP address, chapter pages show a security check instead
+// of the text. It counts as a refusal: fetching backs off, then tries again.
+//
 // Canonical URLs are https://wtr-lab.com/en/novel/<id>/<slug>: the site needs the slug
 // (/en/novel/<id> alone is a 404), and English is the reading language.
 import { htmlToText } from '../../../epub/normalize.js';
@@ -155,6 +158,7 @@ async function renderChapter(
 ): Promise<ChapterHtml & { locked: boolean }> {
   const page = await session.render(url, {
     waitFor: sel.CHAPTER_LOADED,
+    challenge: sel.CHAPTER_CHALLENGE,
     timeout: sel.CHAPTER_LOAD_TIMEOUT,
   });
   const content = html.parse(page.text).querySelector(sel.CHAPTER_CONTENT);
