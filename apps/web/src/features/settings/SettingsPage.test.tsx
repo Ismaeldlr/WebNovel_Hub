@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { fakeApi } from '../../test/fakeApi';
+import { addNovel, fakeApi } from '../../test/fakeApi';
 import { renderApp } from '../../test/renderApp';
 import { media } from '../../test/setup';
 
@@ -126,5 +126,26 @@ describe('Settings page', () => {
     api.preferencesGate.catch(() => undefined);
     renderApp('/settings');
     expect(await screen.findByRole('heading', { name: "Your settings didn't load" })).toBeVisible();
+  });
+
+  it("lists each novel's downloaded chapters, and deletes one novel's", async () => {
+    const api = signedIn();
+    const big = addNovel(api, { title: 'Long One', chapters: 4, fetched: [1, 2, 3, 4] });
+    addNovel(api, { title: 'Short One', chapters: 2, fetched: [1] });
+    const { user } = await openSettings('/settings/storage');
+    const storage = section('Downloaded chapters');
+    const rows = await within(storage).findAllByRole('listitem');
+    expect(rows.map((row) => row.textContent)).toEqual([
+      expect.stringMatching(/^Long One4 chapters · \d+ B/),
+      expect.stringMatching(/^Short One1 chapter · \d+ B/),
+    ]);
+    await user.click(
+      within(storage).getByRole('button', { name: 'Delete the downloaded chapters of Long One' }),
+    );
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete downloads' }),
+    );
+    await waitFor(() => expect(within(storage).getAllByRole('listitem')).toHaveLength(1));
+    expect(api.novels.get(big)?.chapters.some((chapter) => chapter.isFetched)).toBe(false);
   });
 });

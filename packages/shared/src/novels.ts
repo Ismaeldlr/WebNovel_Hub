@@ -91,6 +91,28 @@ export interface NovelResponse {
   novel: NovelDetail;
 }
 
+/** How much of one novel's chapter text is stored on the device. */
+export interface NovelStorage {
+  novelId: string;
+  title: string;
+  storedChapters: number;
+  /** The stored text's size, in bytes. */
+  bytes: number;
+  /** False for EPUB imports: their text can't be downloaded again. */
+  canClear: boolean;
+}
+
+/** Response of GET /storage: the novels with stored text, largest first. */
+export interface StorageResponse {
+  novels: NovelStorage[];
+  totalBytes: number;
+}
+
+/** Response of DELETE /novels/:id/downloads: how many chapters' text was deleted. */
+export interface ClearDownloadsResponse {
+  cleared: number;
+}
+
 /** One row of a novel's chapter list. */
 export interface ChapterSummary {
   id: string;

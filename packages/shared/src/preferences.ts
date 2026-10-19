@@ -7,6 +7,10 @@ import type { ContentWidth, ThemePreference } from './enums.js';
 export const READER_FONT_FAMILIES = ['serif', 'sans', 'hyperlegible', 'system'] as const;
 export type ReaderFontFamily = (typeof READER_FONT_FAMILIES)[number];
 
+/** How the reading text lines up: ragged on the right, or justified to both edges. */
+export const READER_TEXT_ALIGNS = ['start', 'justify'] as const;
+export type ReaderTextAlign = (typeof READER_TEXT_ALIGNS)[number];
+
 /**
  * Whose new chapters are announced: every novel being read or followed, or only the novels
  * the reader picked. A novel's own choice (LibraryState.notify) comes first either way.
@@ -25,6 +29,11 @@ export interface ReaderPreferences {
   lineSpacing: number;
   contentWidth: ContentWidth;
   fontFamily: ReaderFontFamily;
+  /** The space between paragraphs, in em. */
+  paragraphSpacing: number;
+  textAlign: ReaderTextAlign;
+  /** Whether each paragraph's first line is indented. */
+  paragraphIndent: boolean;
   /** Chapters fetched ahead in the background. */
   prefetchCount: number;
   updateIntervalHours: number;
@@ -59,6 +68,9 @@ export const READER_PREFERENCE_DEFAULTS: Readonly<ReaderPreferences> = {
   lineSpacing: 1.6,
   contentWidth: 'medium',
   fontFamily: 'serif',
+  paragraphSpacing: 1.1,
+  textAlign: 'start',
+  paragraphIndent: false,
   prefetchCount: 3,
   updateIntervalHours: 6,
   backgroundFetching: false,
@@ -77,6 +89,7 @@ export const READER_PREFERENCE_LIMITS = {
   fontSize: { min: 14, max: 28, step: 1 },
   fontSizeCompact: { min: 14, max: 28, step: 1 },
   lineSpacing: { min: 1.4, max: 2.2, step: 0.1 },
+  paragraphSpacing: { min: 0.3, max: 2.5, step: 0.1 },
   prefetchCount: { min: 0, max: 10, step: 1 },
   updateIntervalHours: { min: 1, max: 168, step: 1 },
 } as const;
@@ -92,6 +105,9 @@ export const EDITABLE_PREFERENCES = [
   'lineSpacing',
   'contentWidth',
   'fontFamily',
+  'paragraphSpacing',
+  'textAlign',
+  'paragraphIndent',
   'prefetchCount',
   'backgroundFetching',
   'wifiOnly',

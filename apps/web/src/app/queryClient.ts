@@ -21,6 +21,8 @@ export const queryKeys = {
   shelves: ['library', 'shelves'] as const,
   /** The novels with their own choice about notifications (Settings). */
   notifyChoices: ['library', 'notify'] as const,
+  /** How much chapter text each novel stores (Settings, a novel's More menu). */
+  storage: ['storage'] as const,
   /** A novel's page; its chapter pages and update check live under the same prefix. */
   novel: (novelId: string) => ['novel', novelId] as const,
   chapters: (novelId: string, params: object) => ['novel', novelId, 'chapters', params] as const,

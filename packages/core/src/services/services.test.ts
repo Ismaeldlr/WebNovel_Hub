@@ -485,11 +485,40 @@ describe('EPUB import, export and novel management', () => {
       400,
     );
 
+    // An EPUB's text can't be downloaded again, so it is never deleted on its own.
+    expect((await management.storage()).novels).toEqual([
+      expect.objectContaining({ novelId: novel.id, storedChapters: 3, canClear: false }),
+    ]);
+    expect(await failsWith(management.clearDownloads(novel.id))).toBe(409);
+
     await management.deleteNovel(novel.id);
     const left = await db.query<{ n: number }>(
       'SELECT (SELECT count(*) FROM chapters) + (SELECT count(*) FROM covers) AS n',
     );
     expect(left.rows[0]?.n).toBe(0);
     expect(await failsWith(management.deleteNovel(novel.id))).toBe(404);
+  });
+
+  it("deletes a novel's downloaded chapters and keeps the novel", async () => {
+    const management = createNovelManagementService(db);
+    const { id } = await insertNovel(db, { chapters: 3, fetched: [1, 2] });
+    const storage = await management.storage();
+    expect(storage.novels).toEqual([
+      { novelId: id, title: expect.any(String), storedChapters: 2, bytes: 20, canClear: true },
+    ]);
+    expect(storage.totalBytes).toBe(20);
+
+    expect(await management.clearDownloads(id)).toBe(2);
+    expect((await management.storage()).novels).toEqual([]);
+    const { rows } = await db.query<{ chapters: number; fetched: number; entry: number }>(
+      `SELECT (SELECT count(*) FROM chapters WHERE novel_id = $1) AS chapters,
+              (SELECT count(*) FROM chapters WHERE novel_id = $1 AND is_fetched = 1) AS fetched,
+              (SELECT count(*) FROM library_entries WHERE novel_id = $1) AS entry`,
+      [id],
+    );
+    expect(rows[0]).toEqual({ chapters: 3, fetched: 0, entry: 1 });
+    expect(await failsWith(management.clearDownloads('00000000-0000-4000-8000-000000000000'))).toBe(
+      404,
+    );
   });
 });

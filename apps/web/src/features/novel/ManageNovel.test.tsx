@@ -68,4 +68,18 @@ describe('Managing a novel', () => {
     expect(await screen.findByText('“Doomed” was deleted')).toBeVisible();
     expect(api.novels.has(id)).toBe(false);
   });
+
+  it('deletes the downloaded chapters and keeps the novel', async () => {
+    const api = signedIn();
+    const id = addNovel(api, { title: 'Kept', chapters: 5, fetched: [1, 2, 3], library: {} });
+    const { user } = renderApp(`/novels/${id}`);
+
+    await chooseMore(user, 'Delete downloaded chapters…');
+    expect(dialog().getByText(/The text of 3 downloaded chapters/)).toBeVisible();
+    await user.click(dialog().getByRole('button', { name: 'Delete downloads' }));
+    expect(await screen.findByText('Deleted 3 downloaded chapters of “Kept”')).toBeVisible();
+    expect(api.novels.has(id)).toBe(true);
+    expect(api.novels.get(id)?.chapters.some((chapter) => chapter.isFetched)).toBe(false);
+    expect(location()).toBe(`/novels/${id}`);
+  });
 });

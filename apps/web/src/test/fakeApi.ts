@@ -609,6 +609,7 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
           'read',
           'update-check',
           'fetch-all',
+          'downloads',
           'cover',
           'new-chapters-count',
           'preferences',
@@ -657,6 +658,38 @@ export function fakeApi(initial: Partial<Pick<FakeApi, 'unreachable'>> = {}): Fa
       case 'POST /novels/:id/cover':
       case 'DELETE /novels/:id':
         return manage(method, route, id, body);
+      case 'GET /storage': {
+        const novels = [...api.novels.values()]
+          .map(({ novel, chapters }) => {
+            const texts = chapters
+              .map((chapter) => api.contents.get(chapter.id))
+              .filter((text): text is string => text !== undefined);
+            const bytes = texts.reduce(
+              (sum, text) => sum + new TextEncoder().encode(text).length,
+              0,
+            );
+            return {
+              novelId: novel.id,
+              title: novel.title,
+              storedChapters: texts.length,
+              bytes,
+              canClear: novel.sourceUrl !== null,
+            };
+          })
+          .filter((each) => each.storedChapters > 0)
+          .sort((a, b) => b.bytes - a.bytes);
+        return reply(200, { novels, totalBytes: novels.reduce((sum, n) => sum + n.bytes, 0) });
+      }
+      case 'DELETE /novels/:id/downloads': {
+        const entry = api.novels.get(id);
+        if (!entry) return notFound('Novel not found.');
+        let cleared = 0;
+        for (const chapter of entry.chapters) {
+          if (api.contents.delete(chapter.id)) cleared += 1;
+          chapter.isFetched = false;
+        }
+        return reply(200, { cleared });
+      }
       case 'GET /novels/:id': {
         const entry = api.novels.get(id);
         if (!entry) return notFound('Novel not found.');

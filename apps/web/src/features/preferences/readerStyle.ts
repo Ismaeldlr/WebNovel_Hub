@@ -2,6 +2,7 @@ import {
   type ContentWidth,
   type ReaderFontFamily,
   type ReaderPreferences,
+  type ReaderTextAlign,
   type ThemePreference,
 } from '@webnovel-hub/shared';
 import type { CSSProperties } from 'react';
@@ -36,6 +37,9 @@ export function readerStyle(preferences: ReaderPreferences): CSSProperties {
     '--reader-line-height': String(preferences.lineSpacing),
     '--reader-measure': MEASURES[preferences.contentWidth],
     '--reader-font': FONT_STACKS[preferences.fontFamily],
+    '--reader-paragraph-spacing': `${preferences.paragraphSpacing}em`,
+    '--reader-text-align': preferences.textAlign,
+    '--reader-indent': preferences.paragraphIndent ? '1.5em' : '0',
   } as CSSProperties;
 }
 
@@ -57,6 +61,11 @@ export const WIDTH_OPTIONS: Option<ContentWidth>[] = [
   { value: 'narrow', label: 'Narrow' },
   { value: 'medium', label: 'Medium' },
   { value: 'wide', label: 'Wide' },
+];
+
+export const ALIGN_OPTIONS: Option<ReaderTextAlign>[] = [
+  { value: 'start', label: 'Left' },
+  { value: 'justify', label: 'Justified' },
 ];
 
 export const FONT_OPTIONS: (Option<ReaderFontFamily> & { detail: string })[] = [

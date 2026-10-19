@@ -7,28 +7,33 @@ import {
 import {
   AArrowDown,
   AArrowUp,
+  AlignJustify,
+  AlignLeft,
   CircleAlert,
   CloudCheck,
   Minus,
   Plus,
   RotateCcw,
 } from 'lucide-react';
-import { Button, ChoiceGroup, ChoiceLabel, Slider, Spinner } from '../../components/ui';
+import { Button, ChoiceGroup, ChoiceLabel, Slider, Spinner, Switch } from '../../components/ui';
 import { COMPACT_QUERY } from '../../lib/breakpoints';
 import { useMediaQuery } from '../../lib/hooks';
 import styles from './ReaderOptions.module.css';
-import { FONT_OPTIONS, FONT_STACKS, WIDTH_OPTIONS } from './readerStyle';
+import { ALIGN_OPTIONS, FONT_OPTIONS, FONT_STACKS, WIDTH_OPTIONS } from './readerStyle';
 import { type SaveStatus as Status } from './store';
 import { ThemePicker } from './ThemePicker';
 import { useSaveStatus, useShownPreferences } from './usePreferences';
 
-/** The look, which "Reset to defaults" puts back (not downloads ahead). */
-const LOOK = [
-  'theme',
+/** The reading text's look, which "Reset to defaults" puts back (with the theme, unless only
+ * the text options show). */
+const TEXT_LOOK = [
   'fontSize',
   'fontSizeCompact',
   'lineSpacing',
+  'paragraphSpacing',
   'contentWidth',
+  'textAlign',
+  'paragraphIndent',
   'fontFamily',
 ] as const;
 
@@ -42,6 +47,8 @@ interface ReaderOptionsProps {
    * and the larger-screen size (in Settings).
    */
   textSizes?: 'screen' | 'both';
+  /** Which options show: all of them, only the theme, or only the reading text's. */
+  part?: 'all' | 'theme' | 'text';
 }
 
 /**
@@ -55,16 +62,21 @@ export function ReaderOptions({
   onChange: save,
   showStatus = true,
   textSizes = 'screen',
+  part = 'all',
 }: ReaderOptionsProps) {
   const [preferences, onChange] = useShownPreferences(saved, save);
   const phone = useMediaQuery(COMPACT_QUERY);
-  const { fontSize, fontSizeCompact, lineSpacing } = READER_PREFERENCE_LIMITS;
-  const isDefault = LOOK.every((key) => preferences[key] === READER_PREFERENCE_DEFAULTS[key]);
+  const { fontSize, fontSizeCompact, lineSpacing, paragraphSpacing } = READER_PREFERENCE_LIMITS;
+  const look: readonly (keyof ReaderPreferences)[] =
+    part === 'text' ? TEXT_LOOK : ['theme', ...TEXT_LOOK];
+  const isDefault = look.every((key) => preferences[key] === READER_PREFERENCE_DEFAULTS[key]);
   const sizes = textSizes === 'both' ? [false, true] : [phone];
+  const theme = <ThemePicker value={preferences.theme} onChange={(theme) => onChange({ theme })} />;
+  if (part === 'theme') return <div className={styles.options}>{theme}</div>;
 
   return (
     <div className={styles.options}>
-      <ThemePicker value={preferences.theme} onChange={(theme) => onChange({ theme })} />
+      {part === 'all' && theme}
 
       {sizes.map((forPhones) => (
         <Slider
@@ -93,6 +105,17 @@ export function ReaderOptions({
         onChange={(value) => onChange({ lineSpacing: value })}
       />
 
+      <Slider
+        label="Paragraph spacing"
+        value={preferences.paragraphSpacing}
+        limits={paragraphSpacing}
+        shown={(value) => value.toFixed(1)}
+        spoken={(value) => value.toFixed(1)}
+        decrease={{ label: 'Less paragraph spacing', icon: <Minus aria-hidden="true" /> }}
+        increase={{ label: 'More paragraph spacing', icon: <Plus aria-hidden="true" /> }}
+        onChange={(value) => onChange({ paragraphSpacing: value })}
+      />
+
       {!(textSizes === 'screen' && phone) && (
         <ChoiceGroup
           legend="Width"
@@ -112,6 +135,31 @@ export function ReaderOptions({
           )}
         />
       )}
+
+      <ChoiceGroup
+        legend="Alignment"
+        value={preferences.textAlign}
+        options={ALIGN_OPTIONS}
+        onChange={(textAlign) => onChange({ textAlign })}
+        layout="tiles"
+        render={(option) => (
+          <>
+            {option.value === 'justify' ? (
+              <AlignJustify className={styles.alignIcon} aria-hidden="true" />
+            ) : (
+              <AlignLeft className={styles.alignIcon} aria-hidden="true" />
+            )}
+            <ChoiceLabel>{option.label}</ChoiceLabel>
+          </>
+        )}
+      />
+
+      <Switch
+        label="Indent paragraphs"
+        detail="The first line of each paragraph starts further in."
+        checked={preferences.paragraphIndent}
+        onChange={(paragraphIndent) => onChange({ paragraphIndent })}
+      />
 
       <ChoiceGroup
         legend="Font"
@@ -141,11 +189,9 @@ export function ReaderOptions({
           variant="ghost"
           icon={<RotateCcw aria-hidden="true" />}
           disabled={isDefault}
-          onClick={() => {
-            const { theme, fontSize, fontSizeCompact, lineSpacing, contentWidth, fontFamily } =
-              READER_PREFERENCE_DEFAULTS;
-            onChange({ theme, fontSize, fontSizeCompact, lineSpacing, contentWidth, fontFamily });
-          }}
+          onClick={() =>
+            onChange(Object.fromEntries(look.map((key) => [key, READER_PREFERENCE_DEFAULTS[key]])))
+          }
         >
           Reset to defaults
         </Button>

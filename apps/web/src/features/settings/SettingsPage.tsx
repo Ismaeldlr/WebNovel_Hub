@@ -3,7 +3,7 @@ import { BellRing, ChevronRight } from 'lucide-react';
 import { Link, Navigate, useParams } from 'react-router';
 import { Card, ErrorState, Notice, Select, Spinner } from '../../components/ui';
 import { COMPACT_QUERY } from '../../lib/breakpoints';
-import { plural } from '../../lib/format';
+import { formatBytes, plural } from '../../lib/format';
 import { useMediaQuery, usePageBar } from '../../lib/hooks';
 import { appKind } from '../../platform';
 import { PageHeader } from '../pages/PageHeader';
@@ -18,7 +18,9 @@ import { SectionHeading } from './SectionHeading';
 import styles from './SettingsPage.module.css';
 import { AppSection, BackgroundSection } from './AppSettings';
 import { BackupSection } from './BackupSection';
+import { useStorage } from '../novel/manageActions';
 import { NotificationSettings } from './NotificationSettings';
+import { StorageSection } from './StorageSection';
 import { WtrLabSection } from './WtrLabSection';
 import { SETTINGS_GROUPS, type SettingsGroup, settingsPath, useAppVersion } from './settingsGroups';
 import { useWtrLabAccount } from './wtrLabAccount';
@@ -139,6 +141,7 @@ function GroupValue({
   const phone = useMediaQuery(COMPACT_QUERY);
   const account = useWtrLabAccount(id === 'accounts' && appKind !== 'browser');
   const version = useAppVersion(id === 'about');
+  const storage = useStorage(id === 'storage');
   switch (id) {
     case 'appearance': {
       const theme = THEME_OPTIONS.find((option) => option.value === preferences.theme)?.label;
@@ -159,6 +162,10 @@ function GroupValue({
       ].filter(Boolean);
       return kinds.length > 0 ? kinds.join(' · ') : 'Off';
     }
+    case 'storage':
+      return storage.data
+        ? `${formatBytes(storage.data.totalBytes)} of downloaded chapters`
+        : 'Downloaded chapters by novel';
     case 'accounts': {
       const signedIn = account.data?.signedIn;
       if (signedIn === true) return 'WTR Lab · Signed in';
@@ -232,6 +239,8 @@ function GroupContent({
       );
     case 'notifications':
       return <NotificationSettings preferences={preferences} onChange={update} />;
+    case 'storage':
+      return <StorageSection />;
     case 'accounts':
       return <WtrLabSection preferences={preferences} onChange={update} />;
     case 'backup':

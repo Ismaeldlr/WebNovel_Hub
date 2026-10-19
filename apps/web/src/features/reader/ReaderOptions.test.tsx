@@ -148,7 +148,7 @@ describe('reading options in the reader', () => {
     expect(
       within(toolbar).getByRole('button', { name: 'Chapters (chapter 1 of 1)' }),
     ).toHaveTextContent('1 / 1');
-    expect(within(toolbar).getByRole('button', { name: 'Reading options' })).toBeVisible();
+    expect(within(toolbar).getByRole('button', { name: 'Reader menu' })).toBeVisible();
     expect(screen.queryByRole('navigation', { name: 'Chapter navigation' })).toBeNull();
     expect(
       screen.queryByRole('navigation', { name: 'Chapter navigation, end of chapter' }),
@@ -161,7 +161,15 @@ describe('reading options in the reader', () => {
     expect(menu.getByRole('menuitem', { name: 'Novel page' })).toBeVisible();
     await user.keyboard('{Escape}');
 
-    const panel = await openOptions(user);
+    // The reader menu opens on the chapter: where it is, and what to do with it.
+    await user.click(within(toolbar).getByRole('button', { name: 'Reader menu' }));
+    const panel = screen.getByRole('dialog', { name: 'Reader menu' });
+    expect(within(panel).getByText('Chapter 1 of 1 · 100% of the novel')).toBeVisible();
+    expect(within(panel).getByRole('link', { name: 'Terms' }).getAttribute('href')).toMatch(
+      /^\/profile\/terms\?q=./,
+    );
+    await user.click(within(panel).getByRole('tab', { name: 'Text' }));
+    expect(within(panel).queryByRole('radiogroup', { name: 'Theme' })).toBeNull();
     expect(within(panel).queryByRole('slider', { name: 'Text size on larger screens' })).toBeNull();
     // The column is the screen: no width to choose.
     expect(within(panel).queryByRole('group', { name: 'Width' })).toBeNull();
@@ -249,7 +257,58 @@ describe('reading options in the reader', () => {
       lineSpacing: 1.6,
       contentWidth: 'medium',
       fontFamily: 'serif',
+      paragraphSpacing: 1.1,
+      textAlign: 'start',
+      paragraphIndent: false,
     });
     expect(api.preferences.prefetchCount).toBe(7);
+  });
+
+  it('sets paragraph spacing, alignment and indents', async () => {
+    const api = signedIn();
+    const id = addNovel(api, { chapters: 1, fetched: [1] });
+    const { user } = renderApp(`/reader/${id}/1`);
+    expect(await screen.findByText('The opening of chapter 1.')).toBeVisible();
+
+    const panel = await openOptions(user);
+    fireEvent.change(within(panel).getByRole('slider', { name: 'Paragraph spacing' }), {
+      target: { value: '1.5' },
+    });
+    await expectStyle('--reader-paragraph-spacing', '1.5em');
+    await user.click(within(panel).getByRole('radio', { name: 'Justified' }));
+    await expectStyle('--reader-text-align', 'justify');
+    await user.click(within(panel).getByRole('switch', { name: 'Indent paragraphs' }));
+    await expectStyle('--reader-indent', '1.5em');
+    await waitFor(
+      () =>
+        expect(api.preferenceSaves).toEqual([
+          { paragraphSpacing: 1.5, textAlign: 'justify', paragraphIndent: true },
+        ]),
+      SAVE_TIMEOUT,
+    );
+  });
+
+  it('finds words in the chapter with Ctrl+F', async () => {
+    const api = signedIn();
+    const id = addNovel(api, { chapters: 1, fetched: [1] });
+    const { user } = renderApp(`/reader/${id}/1`);
+    expect(await screen.findByText('The opening of chapter 1.')).toBeVisible();
+
+    await user.keyboard('{Control>}f{/Control}');
+    const field = screen.getByRole('searchbox', { name: 'Find in this chapter' });
+    expect(field).toHaveFocus();
+    await user.type(field, 'PARAGRAPH');
+    expect(screen.getByText('1 of 1')).toBeVisible();
+    await user.clear(field);
+    await user.type(field, 'a');
+    expect(screen.getByText(/^1 of \d+$/)).toBeVisible();
+    await user.keyboard('{Enter}');
+    expect(screen.getByText(/^2 of \d+$/)).toBeVisible();
+    await user.clear(field);
+    await user.type(field, 'dragon');
+    expect(screen.getByText('No matches')).toBeVisible();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('searchbox')).toBeNull();
+    expect(screen.getByRole('link', { name: /^Back to / })).toBeVisible();
   });
 });

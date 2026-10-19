@@ -38,6 +38,12 @@
   width: 88%;
 }
 
+.alignIcon {
+  width: var(--icon-md);
+  height: var(--icon-md);
+  color: var(--ink-soft);
+}
+
 .fontName {
   font-size: var(--text-lg);
   line-height: 1.3;

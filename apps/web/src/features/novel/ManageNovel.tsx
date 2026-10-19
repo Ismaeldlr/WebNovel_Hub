@@ -5,6 +5,7 @@ import {
   Eye,
   EyeOff,
   FileDown,
+  FileX2,
   ImageUp,
   LibraryBig,
   PencilLine,
@@ -22,11 +23,18 @@ import {
   TextField,
   useToast,
 } from '../../components/ui';
-import { plural } from '../../lib/format';
+import { formatBytes, plural } from '../../lib/format';
 import { useExportEpub } from '../exports/useExportEpub';
 import { useSetHidden } from '../library/libraryActions';
 import { NovelShelvesDialog } from '../library/Shelves';
-import { checkCoverFile, useDeleteNovel, useUpdateDetails, useUploadCover } from './manageActions';
+import {
+  checkCoverFile,
+  useClearDownloads,
+  useDeleteNovel,
+  useStorage,
+  useUpdateDetails,
+  useUploadCover,
+} from './manageActions';
 import styles from './NovelPage.module.css';
 import type { FullFetchState } from './useFullFetch';
 
@@ -39,8 +47,8 @@ const parseTags = (text: string) =>
 
 /**
  * "More": the novel's less frequent actions in one menu (a sheet on phones): its shelves,
- * hiding it, fetch all chapters, export, edit details, change cover and delete. Only the
- * novel's own details can be edited, never chapter text.
+ * hiding it, fetch all chapters, export, delete the downloaded chapters, edit details,
+ * change cover and delete. Only the novel's own details can be edited, never chapter text.
  */
 export function MoreActions({
   novel,
@@ -54,6 +62,9 @@ export function MoreActions({
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [shelving, setShelving] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const clear = useClearDownloads();
+  const size = useStorage(clearing).data?.novels.find((each) => each.novelId === novel.id);
   const setHidden = useSetHidden();
   const { library } = novel;
   const { storedChapters, totalChapters } = fullFetch;
@@ -64,6 +75,8 @@ export function MoreActions({
   const inputRef = useRef<HTMLInputElement>(null);
   // Hidden for EPUB imports, while a fetch waits or runs, and once every chapter is stored.
   const canFetchAll = fullFetch.available && !fullFetch.active && storedChapters < totalChapters;
+  // Never for EPUB imports, whose text can't be downloaded again, nor while a fetch runs.
+  const canClear = fullFetch.available && !fullFetch.active && storedChapters > 0;
 
   return (
     <>
@@ -105,6 +118,11 @@ export function MoreActions({
         {storedChapters > 0 && (
           <MenuItem icon={<FileDown aria-hidden="true" />} onSelect={() => exportEpub.mutate()}>
             Export EPUB
+          </MenuItem>
+        )}
+        {canClear && (
+          <MenuItem icon={<FileX2 aria-hidden="true" />} onSelect={() => setClearing(true)}>
+            Delete downloaded chapters…
           </MenuItem>
         )}
         <MenuItem icon={<PencilLine aria-hidden="true" />} onSelect={() => setEditing(true)}>
@@ -150,6 +168,27 @@ export function MoreActions({
           onClose={() => setShelving(false)}
         />
       )}
+      <ConfirmDialog
+        open={clearing}
+        title="Delete the downloaded chapters?"
+        confirmLabel="Delete downloads"
+        tone="danger"
+        busy={clear.isPending}
+        onCancel={() => setClearing(false)}
+        onConfirm={() =>
+          clear.mutate(
+            { novelId: novel.id, title: novel.title },
+            { onSettled: () => setClearing(false) },
+          )
+        }
+      >
+        <p>
+          The text of {plural(storedChapters, 'downloaded chapter')}
+          {size ? ` (${formatBytes(size.bytes)})` : ''} is deleted from this device. “{novel.title}”
+          stays in your library with its chapter list and your progress, and chapters download again
+          as you read them.
+        </p>
+      </ConfirmDialog>
       <ConfirmDialog
         open={deleting}
         title={`Delete “${novel.title}”?`}
