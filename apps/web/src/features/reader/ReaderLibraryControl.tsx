@@ -2,6 +2,7 @@ import type { LibraryState, ReaderNovel } from '@webnovel-hub/shared';
 import { BookOpen, ChevronDown, EllipsisVertical, Replace, Star } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useGoUp } from '../../app/back';
+import { termsSearchPath } from '../../app/navigation';
 import { IconButton, Menu, MenuHeader, MenuItem, MenuSeparator } from '../../components/ui';
 import { STATUS_LABELS, STATUS_OPTIONS } from '../../lib/reading';
 import { useSetFavorite, useSetStatus } from '../library/libraryActions';
@@ -68,7 +69,7 @@ export function ReaderLibraryControl({ novel, library, compact = false }: Props)
         </MenuItem>
         <MenuItem
           icon={<Replace aria-hidden="true" />}
-          onSelect={() => void navigate('/profile/terms')}
+          onSelect={() => void navigate(termsSearchPath(novel.title))}
         >
           Terms
         </MenuItem>

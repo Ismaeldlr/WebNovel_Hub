@@ -4,6 +4,7 @@ import {
   Bell,
   CircleUserRound,
   Download,
+  HardDrive,
   Info,
   type LucideIcon,
   Palette,
@@ -11,7 +12,7 @@ import {
 import { appKind, getPlatform } from '../../platform';
 
 export type SettingsGroupId =
-  'appearance' | 'downloads' | 'notifications' | 'accounts' | 'backup' | 'about';
+  'appearance' | 'downloads' | 'notifications' | 'storage' | 'accounts' | 'backup' | 'about';
 
 export interface SettingsGroup {
   id: SettingsGroupId;
@@ -28,6 +29,7 @@ export const SETTINGS_GROUPS: readonly SettingsGroup[] = [
   { id: 'appearance', title: 'Appearance', icon: Palette, set: 'reading' },
   { id: 'downloads', title: 'Downloads & updates', icon: Download, set: 'reading' },
   { id: 'notifications', title: 'Notifications', icon: Bell, set: 'reading' },
+  { id: 'storage', title: 'Storage', icon: HardDrive, set: 'app' },
   { id: 'accounts', title: 'Accounts', icon: CircleUserRound, set: 'app' },
   { id: 'backup', title: 'Backup & restore', icon: Archive, set: 'app', appOnly: true },
   { id: 'about', title: 'About', icon: Info, set: 'app', appOnly: true },

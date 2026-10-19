@@ -1,5 +1,6 @@
 import type {
   ChapterFetchResponse,
+  ClearDownloadsResponse,
   ChapterOrder,
   ChapterPage,
   ExportListResponse,
@@ -26,6 +27,7 @@ import type {
   SourceAccountResponse,
   SourcesResponse,
   StartUpdateCheckResponse,
+  StorageResponse,
   UpdateCheckResponse,
   UpdateRunPage,
   FullFetchResponse,
@@ -97,6 +99,15 @@ export const novelsApi = {
   uploadCover: async (novelId: string, file: File) =>
     (await uploadFile<NovelResponse>(`/novels/${id(novelId)}/cover`, file)).novel,
   /** Deletes the novel and everything stored for it. */
+  /** Deletes a novel's downloaded chapter text, keeping the novel; how many chapters lost it. */
+  clearDownloads: async (novelId: string) =>
+    (
+      await apiRequest<ClearDownloadsResponse>(`/novels/${id(novelId)}/downloads`, {
+        method: 'DELETE',
+      })
+    ).cleared,
+  /** How much chapter text each novel stores, largest first. */
+  storage: (signal?: AbortSignal) => apiRequest<StorageResponse>('/storage', { signal }),
   deleteNovel: async (novelId: string) => {
     await apiRequest<null>(`/novels/${id(novelId)}`, { method: 'DELETE' });
   },

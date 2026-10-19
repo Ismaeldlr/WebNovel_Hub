@@ -9,12 +9,14 @@
   font-family: var(--reader-font, var(--font-serif));
   font-size: var(--reader-font-size, 1.125rem);
   line-height: var(--reader-line-height, 1.6);
+  text-align: var(--reader-text-align, start);
   overflow-wrap: break-word;
   hyphens: auto;
 }
 
 .text p {
-  margin: 0 0 1.1em;
+  margin: 0 0 var(--reader-paragraph-spacing, 1.1em);
+  text-indent: var(--reader-indent, 0);
 }
 
 @media (max-width: 599px) {

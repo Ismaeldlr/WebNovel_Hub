@@ -1,9 +1,10 @@
 import { COVER_UPLOAD, type NovelDetail, type NovelDetailsUpdate } from '@webnovel-hub/shared';
-import { type QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { novelsApi } from '../../api/catalog';
 import { queryKeys } from '../../app/queryClient';
 import { useToast } from '../../components/ui';
+import { plural } from '../../lib/format';
 
 /** The checks the core makes on a cover first. */
 export const COVER_CHECKS = {
@@ -33,6 +34,46 @@ function refreshNovelViews(queryClient: QueryClient, novelId: string) {
   ]) {
     void queryClient.invalidateQueries({ queryKey });
   }
+}
+
+/** How much chapter text each novel stores on the device. */
+export function useStorage(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.storage,
+    queryFn: ({ signal }) => novelsApi.storage(signal),
+    enabled,
+  });
+}
+
+/**
+ * Deletes a novel's downloaded chapters (DELETE /novels/:id/downloads): the novel, its
+ * chapter list and progress stay, and chapters download again when read.
+ */
+export function useClearDownloads() {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: ({ novelId }: { novelId: string; title: string }) =>
+      novelsApi.clearDownloads(novelId),
+    onSuccess: (cleared, { novelId, title }) => {
+      for (const queryKey of [
+        queryKeys.novel(novelId),
+        queryKeys.readerNovel(novelId),
+        queryKeys.library,
+        queryKeys.exports,
+        queryKeys.storage,
+      ]) {
+        void queryClient.invalidateQueries({ queryKey });
+      }
+      toast({
+        title: `Deleted ${plural(cleared, 'downloaded chapter')} of “${title}”`,
+        description: 'The novel and your progress stay. Chapters download again as you read.',
+        tone: 'success',
+      });
+    },
+    onError: (error) =>
+      toast({ title: "Couldn't delete the downloads", description: error.message, tone: 'error' }),
+  });
 }
 
 /** Saves a novel's details (PATCH /novels/:id); the page shows them at once. */

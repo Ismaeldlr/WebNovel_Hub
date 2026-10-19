@@ -101,6 +101,17 @@ svg {
   color: var(--ink);
 }
 
+/* Find in chapter: every match, and the one being looked at (features/reader/FindBar). */
+::highlight(reader-find) {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+::highlight(reader-find-current) {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
 /* Hidden visually, still read by screen readers. */
 .visually-hidden {
   position: absolute !important;

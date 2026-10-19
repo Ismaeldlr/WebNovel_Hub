@@ -61,6 +61,10 @@ export const libraryTagPath = (tag: string) =>
 export const libraryShelfPath = (shelf: string) =>
   `/library?${new URLSearchParams({ shelf }).toString()}`;
 
+/** The terms, searching for `text` (a novel's title, from the reader). */
+export const termsSearchPath = (text: string) =>
+  `/profile/terms?${new URLSearchParams({ q: text }).toString()}`;
+
 /** The library, searching for `text` (the global search's "See all results"). */
 export const librarySearchPath = (text: string) =>
   text ? `/library?${new URLSearchParams({ q: text }).toString()}` : '/library';

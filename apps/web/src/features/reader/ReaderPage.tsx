@@ -8,7 +8,7 @@ import {
   type ReaderPreferences,
 } from '@webnovel-hub/shared';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, BookCheck, BookX, SearchX } from 'lucide-react';
+import { ArrowLeft, BookCheck, BookX, Search, SearchX } from 'lucide-react';
 import { type ReactNode, type RefObject, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { readerApi } from '../../api/catalog';
@@ -19,6 +19,7 @@ import {
   ButtonLink,
   EmptyState,
   ErrorState,
+  IconButton,
   Skeleton,
   SkipLink,
   Spinner,
@@ -34,6 +35,8 @@ import { usePreferences } from '../preferences/usePreferences';
 import { ChapterNav } from './ChapterNav';
 import { ChaptersSheet } from './ChaptersSheet';
 import { ChapterText } from './ChapterText';
+import { FindBar } from './FindBar';
+import { ReaderChapterTab } from './ReaderChapterTab';
 import { ReaderLibraryControl } from './ReaderLibraryControl';
 import { READER_OPTIONS_SELECTOR, ReaderOptionsPanel } from './ReaderOptionsPanel';
 import styles from './ReaderPage.module.css';
@@ -109,12 +112,18 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
   const upClick = useUpClick();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const articleRef = useRef<HTMLElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   // Phones get a toolbar at the bottom, and bars that make way while reading (§5.4).
   const phone = useMediaQuery(COMPACT_QUERY);
   const bars = useBarsHidden(phone);
   const progressRef = useReadingProgress();
   const [chaptersOpen, setChaptersOpen] = useState(false);
   const openChapters = () => setChaptersOpen(true);
+  // Find in this chapter, which another chapter closes: the chapter it was opened in.
+  const here = `${novelId}/${chapter}`;
+  const [findingIn, setFindingIn] = useState<string | null>(null);
+  const finding = findingIn === here;
+  const openFind = () => setFindingIn(here);
 
   // On a phone, a tap on the text shows or hides the bars; never a tap on a control, and
   // never while selecting text.
@@ -160,6 +169,13 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
   // ← and → turn the page, unless the reader is typing somewhere.
   const navigation: ReaderNavigation | undefined = data?.navigation;
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    // Ctrl+F (⌘F) finds in the chapter, once there is text to find in.
+    const find = (event.ctrlKey || event.metaKey) && !event.altKey && event.key === 'f';
+    if (find && !event.defaultPrevented && data?.status === 'ready') {
+      event.preventDefault();
+      openFind();
+      return;
+    }
     if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
     if (event.shiftKey || ownsArrowKeys(event.target)) return;
     const target =
@@ -207,8 +223,10 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
       control={
         data && <ReaderLibraryControl novel={data.novel} library={data.library} compact={phone} />
       }
-      barsHidden={bars.hidden}
+      barsHidden={bars.hidden && !finding}
       onShowBars={bars.show}
+      find={finding && <FindBar rootRef={bodyRef} onClose={() => setFindingIn(null)} />}
+      onFind={data?.status === 'ready' && !phone ? openFind : undefined}
       progressRef={progressRef}
       toolbar={
         phone && (
@@ -225,7 +243,23 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
               }
             }
           >
-            <ReaderOptionsPanel preferences={preferences} />
+            <ReaderOptionsPanel
+              preferences={preferences}
+              chapter={
+                data && (
+                  <ReaderChapterTab
+                    novelId={novelId}
+                    novelTitle={data.novel.title}
+                    chapter={chapter}
+                    totalChapters={data.novel.totalChapters}
+                    title={data.chapter.title}
+                    wordCount={data.status === 'ready' ? data.wordCount : null}
+                    onChapters={openChapters}
+                    onFind={data.status === 'ready' ? openFind : () => undefined}
+                  />
+                )
+              }
+            />
           </ChapterNav>
         )
       }
@@ -271,7 +305,7 @@ function ChapterReader({ novelId, chapter, preferences }: ChapterReaderProps) {
           />
         )}
 
-        <div className={styles.body}>
+        <div ref={bodyRef} className={styles.body}>
           <ChapterBody
             novelId={novelId}
             chapter={chapter}
@@ -337,6 +371,10 @@ interface FrameProps {
   progressRef?: RefObject<HTMLSpanElement | null>;
   /** The phone's bottom toolbar, which then holds the reading options. */
   toolbar?: ReactNode;
+  /** Find in this chapter, in place of the bar's title while open. */
+  find?: ReactNode;
+  /** Opens find from a button in the bar (wider screens), once there is text. */
+  onFind?: () => void;
   children: ReactNode;
 }
 
@@ -354,6 +392,8 @@ function ReaderFrame({
   onShowBars,
   progressRef,
   toolbar,
+  find,
+  onFind,
   children,
 }: FrameProps) {
   const hidden = barsHidden || undefined;
@@ -368,22 +408,35 @@ function ReaderFrame({
       )}
       <header className={styles.bar} data-hidden={hidden} onFocus={onShowBars}>
         <div className={styles.barInner}>
-          <Link
-            to={`/novels/${novelId}`}
-            className={styles.back}
-            aria-label={`Back to ${novelTitle ?? 'the novel'}`}
-            onClick={upClick}
-          >
-            <ArrowLeft aria-hidden="true" />
-            <span className={styles.backText}>
-              <span className={styles.backTitle}>{novelTitle ?? 'Back to the novel'}</span>
-              {position && <span className={styles.backPosition}>{position}</span>}
-            </span>
-          </Link>
-          <div className={styles.barActions}>
-            {control}
-            {!toolbar && <ReaderOptionsPanel preferences={preferences} />}
-          </div>
+          {find || (
+            <>
+              <Link
+                to={`/novels/${novelId}`}
+                className={styles.back}
+                aria-label={`Back to ${novelTitle ?? 'the novel'}`}
+                onClick={upClick}
+              >
+                <ArrowLeft aria-hidden="true" />
+                <span className={styles.backText}>
+                  <span className={styles.backTitle}>{novelTitle ?? 'Back to the novel'}</span>
+                  {position && <span className={styles.backPosition}>{position}</span>}
+                </span>
+              </Link>
+              <div className={styles.barActions}>
+                {onFind && (
+                  <IconButton
+                    label="Find in chapter"
+                    aria-keyshortcuts="Control+F"
+                    onClick={onFind}
+                  >
+                    <Search aria-hidden="true" />
+                  </IconButton>
+                )}
+                {control}
+                {!toolbar && <ReaderOptionsPanel preferences={preferences} />}
+              </div>
+            </>
+          )}
         </div>
       </header>
       <main id="reader-main" tabIndex={-1} className={styles.main}>

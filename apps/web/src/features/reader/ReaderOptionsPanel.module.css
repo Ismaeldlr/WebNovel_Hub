@@ -41,6 +41,18 @@
   margin-right: calc(-1 * var(--space-2));
 }
 
+/* Phones: the menu's tabs fill the head, beside the close button. */
+.head > [role='tablist'] {
+  flex: 1;
+  min-width: 0;
+}
+
+.tabPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
 .title {
   margin: 0;
   font-size: var(--text-xl);

@@ -429,3 +429,53 @@
     mask-image: linear-gradient(to bottom, black 60%, transparent);
   }
 }
+
+/* ---- Storage: one row per novel with downloaded chapters ---- */
+
+.storageList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.storageRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.storageRow:last-child {
+  border-bottom: 0;
+}
+
+.storageText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.storageTitle {
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storageTitle:hover {
+  text-decoration: underline;
+}
+
+.storageDetail,
+.storageEmpty {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}

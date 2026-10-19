@@ -6,6 +6,7 @@ import {
   READER_PREFERENCE_DEFAULTS,
   type ReaderFontFamily,
   type ReaderPreferences,
+  type ReaderTextAlign,
   type ThemePreference,
 } from '@webnovel-hub/shared';
 import type { Queryable } from '../db/database.js';
@@ -35,6 +36,9 @@ interface PreferencesRow {
   line_spacing: number;
   content_width: ContentWidth;
   font_family: ReaderFontFamily;
+  paragraph_spacing: number;
+  text_align: ReaderTextAlign;
+  paragraph_indent: number;
   prefetch_count: number;
   update_interval_hours: number;
   background_fetching: number;
@@ -49,7 +53,7 @@ interface PreferencesRow {
 }
 
 const PREFERENCE_COLUMNS = `theme, font_size, font_size_compact, line_spacing, content_width,
-  font_family, prefetch_count, update_interval_hours, background_fetching, wifi_only,
+  font_family, paragraph_spacing, text_align, paragraph_indent, prefetch_count, update_interval_hours, background_fetching, wifi_only,
   notify_new_chapters, notify_novels, notify_each_novel, notify_show_titles, notify_downloads,
   notify_problems, wtr_lab_machine_translation`;
 
@@ -61,6 +65,9 @@ function toPreferences(row: PreferencesRow): ReaderPreferences {
     lineSpacing: row.line_spacing,
     contentWidth: row.content_width,
     fontFamily: row.font_family,
+    paragraphSpacing: row.paragraph_spacing,
+    textAlign: row.text_align,
+    paragraphIndent: bool(row.paragraph_indent),
     prefetchCount: row.prefetch_count,
     updateIntervalHours: row.update_interval_hours,
     backgroundFetching: bool(row.background_fetching),
@@ -92,6 +99,9 @@ const EDITABLE_COLUMNS: Record<EditablePreference, string> = {
   lineSpacing: 'line_spacing',
   contentWidth: 'content_width',
   fontFamily: 'font_family',
+  paragraphSpacing: 'paragraph_spacing',
+  textAlign: 'text_align',
+  paragraphIndent: 'paragraph_indent',
   prefetchCount: 'prefetch_count',
   backgroundFetching: 'background_fetching',
   wifiOnly: 'wifi_only',

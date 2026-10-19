@@ -15,6 +15,7 @@ import {
   NOTIFY_NOVELS,
   NOVEL_DETAIL_LIMITS,
   READER_FONT_FAMILIES,
+  READER_TEXT_ALIGNS,
   READER_PREFERENCE_LIMITS,
   RECENT_IMPORTS_LIMITS,
   SEARCH_LIMITS,
@@ -370,10 +371,12 @@ function chapterNumber(value: string | undefined): number {
 
 // --- Preferences -----------------------------------------------------------------------------
 
-const { fontSize, fontSizeCompact, lineSpacing, prefetchCount } = READER_PREFERENCE_LIMITS;
+const { fontSize, fontSizeCompact, lineSpacing, paragraphSpacing, prefetchCount } =
+  READER_PREFERENCE_LIMITS;
 const FONT_SIZE_MESSAGE = `The font size must be a whole number of pixels from ${fontSize.min} to ${fontSize.max}.`;
 const FONT_SIZE_COMPACT_MESSAGE = `The font size on phones must be a whole number of pixels from ${fontSizeCompact.min} to ${fontSizeCompact.max}.`;
 const LINE_SPACING_MESSAGE = `The line spacing must be from ${lineSpacing.min} to ${lineSpacing.max}, in steps of ${lineSpacing.step}.`;
+const PARAGRAPH_SPACING_MESSAGE = `The paragraph spacing must be from ${paragraphSpacing.min} to ${paragraphSpacing.max}, in steps of ${paragraphSpacing.step}.`;
 const PREFETCH_MESSAGE = `Chapters to download ahead must be a whole number from ${prefetchCount.min} to ${prefetchCount.max}.`;
 
 /** A whole number within `limits`, with one message for every way it can be wrong. */
@@ -409,6 +412,19 @@ const preferencesBody = z
         .enum(READER_FONT_FAMILIES, {
           error: 'The font must be serif, sans, hyperlegible or system.',
         })
+        .optional(),
+      paragraphSpacing: z
+        .number({ error: PARAGRAPH_SPACING_MESSAGE })
+        .min(paragraphSpacing.min, PARAGRAPH_SPACING_MESSAGE)
+        .max(paragraphSpacing.max, PARAGRAPH_SPACING_MESSAGE)
+        .refine(isTenths, PARAGRAPH_SPACING_MESSAGE)
+        .transform((value) => Math.round(value * 10) / 10)
+        .optional(),
+      textAlign: z
+        .enum(READER_TEXT_ALIGNS, { error: 'The text alignment must be start or justify.' })
+        .optional(),
+      paragraphIndent: z
+        .boolean({ error: 'Indented paragraphs are on (true) or off (false).' })
         .optional(),
       prefetchCount: wholeNumber(prefetchCount, PREFETCH_MESSAGE).optional(),
       backgroundFetching: z
@@ -640,6 +656,13 @@ export function createRoutes(s: Services): Route[] {
         return ok(null);
       },
     },
+    {
+      method: 'DELETE',
+      path: '/novels/:id/downloads',
+      handle: async (request) =>
+        ok({ cleared: await s.management.clearDownloads(novelId(request)) }),
+    },
+    { method: 'GET', path: '/storage', handle: async () => ok(await s.management.storage()) },
     {
       method: 'GET',
       path: '/novels/:id/terms',

@@ -2,7 +2,7 @@ import type { Term } from '@webnovel-hub/shared';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, Pencil, Plus, Replace, Search } from 'lucide-react';
 import { useId, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { termsApi } from '../../api/terms';
 import { queryKeys } from '../../app/queryClient';
 import {
@@ -52,7 +52,9 @@ export function TermsPage() {
     queryFn: ({ signal }) => termsApi.list(signal),
   });
   const searchId = useId();
-  const [search, setSearch] = useState('');
+  // Opened from the reader: that novel's terms (`?q=` its title).
+  const [params] = useSearchParams();
+  const [search, setSearch] = useState(() => params.get('q') ?? '');
   // `null` adds a term for every novel.
   const [editing, setEditing] = useState<Term | null | undefined>(undefined);
 
