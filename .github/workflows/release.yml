@@ -125,6 +125,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
+          # The desktop package has no "tauri" script for the action's default to run.
+          tauriScript: npx tauri
           tagName: ${{ needs.plan.outputs.tag }}
           releaseName: Webnovel Hub ${{ needs.plan.outputs.tag }}
           releaseBody: Being built; the downloads follow.
